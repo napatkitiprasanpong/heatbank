@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeatBank supervisor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap wide">
+  <header class="top">
+    <h1 id="t-app">HeatBank</h1>
+    <nav><a href="worker.html" id="t-wk"></a><label><span class="muted" id="t-lang"></span> <select id="lang"></select></label></nav>
+  </header>
+  <div id="banners"></div>
+  <main id="main" aria-live="polite"></main>
+  <details class="demo" id="demo" open>
+    <summary id="t-demo"></summary>
+    <div class="ctrl"><label><span id="t-cond"></span><select id="cond"></select></label></div>
+  </details>
+  <footer id="foot"></footer>
+</div>
+<script src="data.js"></script><script src="core.js"></script><script src="ui.js"></script><script src="supervisor.js"></script>
+</body>
+</html>

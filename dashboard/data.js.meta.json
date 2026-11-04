@@ -1,0 +1,9 @@
+{
+  "weather_source": "synthetic:hot_humid",
+  "strain_model": "TOY MODEL (not physiology)",
+  "synthetic": true,
+  "disclaimer": "Planning-stage prototype. Not a medical device. Thresholds are PROPOSED design parameters, not clinical guidance. Simulated results are not real-world validation.",
+  "weather_date": "2026-01-01",
+  "generated_at": "2026-11-04T03:21:19+00:00",
+  "heatbank_version": "0.2.0"
+}

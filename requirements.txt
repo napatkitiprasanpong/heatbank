@@ -1,0 +1,4 @@
+# Pin exact versions after running scripts/check_signatures.py (plan U6).
+pythermalcomfort
+thermofeel
+numpy

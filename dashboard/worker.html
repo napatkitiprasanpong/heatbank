@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeatBank</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 id="t-app">HeatBank</h1>
+    <nav><a href="supervisor.html" id="t-sup"></a><label><span class="muted" id="t-lang"></span> <select id="lang"></select></label></nav>
+  </header>
+  <div id="banners"></div>
+  <main id="main" aria-live="polite"></main>
+  <details class="demo" id="demo" open>
+    <summary id="t-demo"></summary>
+    <div class="ctrl">
+      <label><span id="t-arch"></span><select id="arch"></select></label>
+      <label><span id="t-hour"></span><input type="range" id="hour" min="0" value="0" step="1"><span id="hourlabel" class="muted"></span></label>
+      <label><span id="t-cond"></span><select id="cond"></select></label>
+    </div>
+  </details>
+  <footer id="foot"></footer>
+</div>
+<script src="data.js"></script><script src="core.js"></script><script src="ui.js"></script><script src="worker.js"></script>
+</body>
+</html>
