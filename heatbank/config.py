@@ -7,9 +7,10 @@ Plan refs: section 7 (validity limits, U5), principle P2 (fail safe), section 9 
 # (plan U5). Confirm the 2023-mode limits before submission. Outside range => no extrapolation.
 VALID_RANGES = {
     "tdb_c": (15.0, 50.0),     # air temperature, C
-    "tr_c": (0.0, 60.0),       # mean radiant temperature, C
+    "tr_c": (-1e9, 1e9),       # (unused: v0.5 gates on tr - tdb, below)
+    "tr_minus_tdb_c": (0.0, 60.0),   # from the 4.8.0 docstring: 0 < (tr - tdb) < 60 (7933 limits)
     "v_ms": (0.0, 3.0),        # air speed, m/s
-    "met_wm2": (100.0, 450.0), # metabolic rate, W/m2
+    "met_wm2": (56.0, 250.0),  # metabolic rate, W/m2: 0.96 to 4.3 met in the 2023 standard (the 2004 standard allowed 100 to 450)
     "clo": (0.1, 1.0),         # clothing insulation, clo
 }
 RH_RANGE = (0.0, 100.0)
@@ -30,7 +31,7 @@ def air_speed_from_wind(wind_ms: float) -> float:
 TR_FALLBACK_OFFSET_C = 15.0
 # Audit A2: the constant offset is wrong at night (no sun) and too small in strong sun. "solar" mode scales the offset by
 # forecast shortwave radiation. DEFAULT STAYS "constant" until the owner decides; neither number has a citation yet.
-TR_FALLBACK_MODE = "constant"          # "constant" | "solar"
+TR_FALLBACK_MODE = "solar"             # "constant" | "solar". v0.4: default is "solar" (night tr = tdb). Still uncited, see AUDIT A2
 TR_SOLAR_GAIN_C = 15.0                 # PLACEHOLDER: offset at 1000 W/m2 in "solar" mode (same as the old constant at full sun)
 
 # Synthetic-scenario assumption only: globe temp = air temp + k * solar/1000. Labelled synthetic.
@@ -50,7 +51,7 @@ ALERT_FRACTIONS = (0.50, 0.75, 1.00)   # Yellow, Orange, Red thresholds on fract
 PLAN_WORK_FRACTION = 0.50              # planner works at most this fraction of the remaining allowable time per hour
 PLAN_ROUND_MIN = 5                     # planned work blocks are rounded DOWN to this many minutes
 DEGRADED_WORK_CAP_MIN = 30             # max work minutes per hour while in degraded mode (conservative preset)
-REST_MET_WM2 = 100.0                   # rest modelled at the lowest valid met (real rest is lower: conservative)
+REST_MET_WM2 = 58.0                    # v0.5.2: seated rest = 1 met (58 W/m2). The 2023 standard allows >= 56 W/m2; 100 W/m2 was the 2004 floor and is light WORK, not rest
 STEP_MIN = 10                          # simulation / tracker step, minutes
 SHIFT_HOURS = (7, 17)                  # simulated shift 07:00-17:00
 FROZEN_READINGS = 6                    # identical consecutive node readings => frozen sensor
@@ -65,3 +66,41 @@ EXPORT_STALE_MIN_LEVEL = 2             # ...and the floor (Orange)
 SITE_BIAS_MAX_C = 6.0                  # site-node bias correction is clipped to +/- this (PROPOSED)
 SITE_BIAS_MIN_SAMPLES = 6              # need this many paired readings before any correction is applied
 SITE_BIAS_ALLOW_COOLING = False        # P2: a correction that would LOWER the estimated heat is ignored unless this is True
+
+# --- Part 4 (audit round 2). ALL PROPOSED, none is clinical guidance. -------------------------------------------------
+# A9: where do people rest? PHS decides whether that place actually cools them. Each preset overrides the rest-segment inputs;
+# None keeps the outdoor value. tr is set to tdb for shade (no sun). Cabin values are placeholders to be justified.
+REST_AREA = "shade"
+REST_AREAS = {
+    "shade":        dict(tdb=None, tr="tdb", rh=None, v=None, v_min=None),
+    "fan":          dict(tdb=None, tr="tdb", rh=None, v=None, v_min=1.5),
+    "cooled_cabin": dict(tdb=26.0, tr=26.0, rh=50.0, v=0.2, v_min=None),
+}
+REST_RECOVERY_MIN = 30          # minutes of rest simulated to test whether the rest area lowers predicted rectal temperature
+REST_RECOVERY_EPS_C = 0.05      # the drop must be at least this to count as recovery
+STRAINED_ABOVE_C = 0.40         # v0.5.3: "strained" = predicted t_re this far above STATE_T_RE_BASE_C (0.10 sat on the seated-rest asymptote of about 37.1 C: false 'no cooling')
+# A10: second reading, body state. Maps predicted rectal temperature to a level with the SAME fractions as ALERT_FRACTIONS.
+# Never lowers the conditions level; it is shown next to it. 38.0 is recalled from ISO 7933 and must be confirmed (U11).
+STATE_T_RE_BASE_C = 37.0
+STATE_T_RE_LIMIT_C = 38.0
+# A12: optional cumulative sweat-loss guard (g). None = off. ISO 7933 water-loss limits are recalled as 5 % (95th percentile) and
+# 7.5 % (50th) of body mass; confirm before use (U10). When set, reaching it forces fraction used = 1.0 (Red).
+WATER_GUARD_G = None
+# A15: phone-side break log. Worked minutes this hour beyond the plan (plus grace) RAISE the shown level by one. Local only.
+ADHERENCE_GRACE_MIN = 5
+
+# R2/R3 escalation (audit A18): the prototype has NO automatic notification (it would need a transport, which carries an identifier,
+# see A5). Instead the Red screen offers one-tap call/message that the WORKER starts. The site medic number is supplied at export
+# time (--medic-tel) and is never invented here.
+MEDIC_TEL = None
+
+# --- v0.5: facts read from the installed pythermalcomfort 4.8.0 docstring (user's machine, 2026-11-05) -------------------
+PHS_MODEL = "7933-2023"        # library default; "7933-2004" is the other option
+W_PER_MET = 58.15              # the library takes met in met units; we keep W/m2 everywhere else
+PHS_LIMIT_INPUTS = False       # we gate inputs ourselves (validity.py) and never extrapolate, so the library's NaN-on-limit is switched off
+
+# --- v0.5.3: facts measured with scripts/diagnose_phs.py on pythermalcomfort 4.8.0 (2026-11-05) --------------------------
+# d_lim_t_re / d_lim_loss_* return 1 (not 0) when the limit is ALREADY exceeded at the start of the run. Treat <= this as exceeded (0 min).
+LIMIT_EXCEEDED_MIN = 1.0
+# Predicted t_re at or above this means the ISO 7933 rectal-temperature limit is passed (the library's d_lim_t_re collapses to 1 right after 38.0).
+# Same number as STATE_T_RE_LIMIT_C; belt and braces so Red cannot depend on the library's minute counting.

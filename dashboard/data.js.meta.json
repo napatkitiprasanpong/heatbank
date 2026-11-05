@@ -4,6 +4,6 @@
   "synthetic": true,
   "disclaimer": "Planning-stage prototype. Not a medical device. Thresholds are PROPOSED design parameters, not clinical guidance. Simulated results are not real-world validation.",
   "weather_date": "2026-01-01",
-  "generated_at": "2026-11-04T03:21:19+00:00",
-  "heatbank_version": "0.2.0"
+  "generated_at": "2026-11-05T05:23:01+00:00",
+  "heatbank_version": "0.5.0"
 }

@@ -28,8 +28,7 @@ than five are pooled so nobody can be singled out. The site status always shows 
 can never be hidden when it is at risk. No names. No readings.
 
 ## 5. If someone may be ill
-Anyone can stop work and call the medic or emergency number without needing permission and without penalty. If an alert at Red is
-not acknowledged, a nominated buddy or medic is told only "check on this worker". No readings are sent.
+Anyone can stop work and call the medic or emergency number without needing permission and without penalty. The Red screen offers one tap to call the site medic and one tap to message a buddy whose number the worker keeps on their own phone; the worker starts both and no readings are sent. HeatBank does **not** notify anyone automatically: that would need a channel that identifies the phone, which this design avoids on purpose.
 
 ## 6. Choice and control (for any future version that adds personal signals)
 * Every personal signal is opt-in, one signal at a time, and can be switched off at any moment without penalty.

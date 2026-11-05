@@ -49,6 +49,8 @@
     if (!noData) {
       var nc = C.nextChange(SV.site.map(function (s) { return s.worst; }), idx);
       main.appendChild(h("p", { text: L("next_change") + ": " + (nc ? L("changes_to", { level: L("level_" + nc.level), hour: P.hours[nc.index] }) : L("no_change")) }));
+      var hw = C.heavyWindows(SV.site.map(function (s) { return s.worst; }), P.hours, 1);
+      main.appendChild(h("p", { text: L("heavy_windows") + ": " + (hw.length ? hw.map(function (w) { return w.from + ":00-" + w.to + ":00"; }).join(", ") : L("heavy_none")) + ". " + L("heavy_note") }));
       var tb = h("table", { class: "zones" }, [
         h("thead", {}, [h("tr", {}, ["zone", "crew_size", "site_worst", "first_break", "rotation"].map(function (k) {
           return h("th", { scope: "col", text: L(k === "site_worst" ? "col_level" : k) }); }))])]);

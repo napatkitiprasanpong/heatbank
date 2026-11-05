@@ -10,7 +10,7 @@ from typing import List
 MET = {"light": 100.0, "moderate": 165.0, "heavy": 230.0}
 # PROPOSED clothing insulation, clo: typical light work clothing vs coverall/PPE. VERIFY against ISO 9920.
 CLO = {"light_clothing": 0.5, "coverall_ppe": 0.9}
-POSTURE_STANDING = 2   # pythermalcomfort posture code (UNVERIFIED mapping, U6)
+POSTURE_STANDING = 2   # pythermalcomfort posture code 1/2/3; the wrapper turns it into the text the library needs
 
 
 @dataclass(frozen=True)

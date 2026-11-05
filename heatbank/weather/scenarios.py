@@ -10,6 +10,9 @@ SCENARIOS = {
     "hot_humid": dict(tmin=27.0, tmax=35.0, rh_hot=60.0, rh_cool=85.0, wind=1.0, solar_peak=850.0),
     "hot_dry":   dict(tmin=28.0, tmax=44.0, rh_hot=15.0, rh_cool=35.0, wind=2.0, solar_peak=950.0),
     "cool":      dict(tmin=12.0, tmax=22.0, rh_hot=50.0, rh_cool=75.0, wind=1.5, solar_peak=600.0),
+    # A13: a Gulf peak day. Deliberately OUTSIDE the PHS validity range in the afternoon (tr above 60 C even with a globe reading):
+    # the honest expected output is Red by the validity gate, not a plan. Not used by any "inside the model" test.
+    "gulf_peak": dict(tmin=33.0, tmax=47.0, rh_hot=25.0, rh_cool=60.0, wind=2.5, solar_peak=1000.0),
 }
 
 

@@ -1,4 +1,109 @@
-# Audit: plot holes and bottlenecks (v0.3.0, written 2026-11-04)
+# v0.5.3: what scripts/diagnose_phs.py showed on pythermalcomfort 4.8.0 (2026-11-05)
+* **Red could not occur (bug, fixed).** Once a limit is already passed the library returns **1 minute**, not 0. `fraction = 1 - 1/21` stayed Orange forever, so every earlier PLAN SAFETY "PASS" was hollow. Now: limits of 1 minute or less count as exceeded (0 min), and predicted t_re at or above 38.0 C is Red regardless. Rerun V2: the earlier V2 numbers are void.
+* **A12 resolved:** cumulative sweat carries; limits are counted from the start of the current segment (Q4: 248 - 120 = 128).
+* **U11 mostly supported:** the rectal limit behaves as 38.0 C (limit reached at 42 min when t_re ends at 38.06; d_lim collapses right after 38.0). Still cite the standard.
+* **Acclimatisation works** (38 C humid: t_re 37.54 vs 38.43 in the 2023 model). It was identical in V2 only because the 480 cap and the water-loss limit dominated (A11). At 45 C dry both reach the limit in 30 min.
+* **A9 changed:** seated rest in shade DOES cool a strained worker, even at 44 C dry air (38.09 -> 37.44 C in 30 min; 37.1 C settles after an hour at 33 C). The earlier "rest does not cool" came from a threshold sitting on that asymptote and from rest at 100 W/m2. Thresholds moved (strained above 37.4 C, recovery drop 0.05 C). Humid heat may differ: check hot_humid.
+* **Gulf-like conditions (45 C air, tr 50, rh 25, acclimatised, heavy):** a fresh worker has about 21 minutes; the model's t_re plateaus near 38.4 C and sweat reaches 10 L over 10 h. That is the case the planner must call "no heavy work".
+New switch: `heatbank simulate --probe-min 720` shows how much the 480-minute cap distorts the ratio (A11).
+
+---
+
+# v0.5.2: first real V2 results and what they mean (2026-11-05)
+Read these as questions, not findings. All simulated, synthetic weather, UNVERIFIED archetypes.
+1. **Plan safety PASS everywhere is hollow.** Red never appears in any run, not even for 10 hours of continuous heavy work at 47 C ("0/12 reached the model limit"). A check that cannot fail proves nothing. Either PHS 2023 really allows that (then the alert basis is wrong, because it would never warn) or the carried-state probe does not behave as assumed (Q2/Q4 in `scripts/diagnose_phs.py`).
+2. **Acclimatised and not acclimatised give identical numbers** (A01=A02, A03=A04 ... in all scenarios). The flag may have no effect in the 2023 model, or is not reaching it (Q1).
+3. **"Rest did not cool a strained worker" fires even on the 12-22 C cool day** (36 crew-hours). Rest was modelled at 100 W/m2, which is light work, not rest (equilibrium core temperature is above 36.8). v0.5.2 uses 58 W/m2 (seated rest, allowed by the 2023 limit of 56). The recovery rule still needs checking against Q3.
+4. **The fresh-start allowable time hits the 480-minute cap in 38 to 39 % of probes** (A11): the "fraction used" ratio rests on that cap in over a third of hours.
+5. `heatbank simulate --rest-area` did not exist (flag only on `run_v2`): fixed. The cooled-cabin file you sent was a copy of the forecast-only run, so it is not a result. Summaries are now also saved under a tagged name so runs do not overwrite each other.
+Next: run `python scripts\diagnose_phs.py` and send `out/diagnose_phs.txt`; then rerun the three V2 variants.
+
+---
+
+# v0.5 real-library result (2026-11-05)
+`integration_check.py` on your machine, pythermalcomfort 4.8.0: **7/7 PASS** (smoke test clean, library carries its sweat total so the tracker uses it directly, 8/8 V3 faults, pages boot). Result fields confirmed: `t_re, t_sk, t_cr, t_cr_eq, t_sk_t_cr_wg, d_lim_loss_50, d_lim_loss_95, d_lim_t_re, sweat_loss_g, sweat_rate_watt, evap_load_wm2_min`. One PHS call is about 0.3 to 1.6 ms, so a full V2 run takes seconds (B2 resolved). A12 resolved on this version (sweat carries). U5/U6 resolved for 4.8.0: pin `pythermalcomfort==4.8.0`. `d_lim_t_re` can equal the 480 cap when the limit is never reached (A11 stays relevant).
+The one unit-test error (`test_grid`) was an old test calling the library the v3 way; fixed in v0.5.1. Next: run the real V2 (`heatbank simulate`, `heatbank simulate --forecast-only`) and read PLAN SAFETY, A9, A11.
+
+---
+
+# v0.5 hotfix (2026-11-05): first contact with the real library
+
+Your `check_signatures.py` run (pythermalcomfort **4.8.0**, thermofeel 2.3.0) showed the v0.4 wrapper was wrong in ways the toy model could
+not reveal. Fixed from the docstring you sent: `posture` must be text ("standing"); `met` is in **met units** (we keep W/m2 and convert, 58.15);
+the default model is ISO 7933:**2023** (met limit 56 to 250 W/m2, not 100 to 450); the radiant limit is **0 < tr - tdb < 60**, not tr below 60
+(this removes the Gulf "cliff" A19: tr is no longer gated, only air above 50 C or an excess above 60 C); carry-over has two more inputs
+(`sweat_rate_watt`, `evap_load_wm2_min`); `round_output=False` is used when chaining; `limit_inputs=False` because our own gate decides.
+NaN results now fail safe with a clear reason. **Still unknown until the next run:** the names of the result attributes (d_lim_t_re etc.).
+The old A1 "massive silent Red" worry came true exactly as predicted: 20 model errors, all Red, and the smoke test caught it.
+
+---
+
+# Audit round 2 (v0.4.0, 2026-11-04): what changed, what is still open
+
+Method: unpacked both zips, ran the 70 tests, ran every CLI path and the V2/V3/export flows end to end on the toy model, read every
+module, probed suspicious behaviour, fixed what could be fixed **without the real library**, and added tests (99 now). A headless test
+runs both web pages in a fake DOM (no browser here). **Still nothing has run against the real `pythermalcomfort`** (not installed, no
+network). Every number from the toy model is plumbing, never a result.
+
+## Do Parts 1, 2 and 3 work together?
+Yes, on the toy model. `python scripts/integration_check.py --toy` runs the chain and prints PASS/FAIL per step: library import,
+wrapper smoke test, weather -> tracker -> planner, V3 faults, pack export + supervisor aggregation, both pages booting with every control
+exercised, and a compute-time projection. The pack's hourly levels equal a direct simulation for all 12 archetypes (test
+`test_end_to_end_pack_is_consistent_with_the_simulation`), the site status is never below any listed zone, and the JavaScript fallback rule equals the
+Python one over 128 cases. What this does NOT prove: that the wrapper's kwarg and attribute names match the real library, and that the
+pages look right (layout, colour, touch targets need a real browser, `docs/DEMO_CHECKLIST.md`).
+Integration defects found and fixed this round: (1) the toy model accepted `sweat_loss_g` as an input exactly like the wrapper passed it, so
+the tests could not see a wrong name; (2) V3 always used the toy baseline even with the real library (`faults --real` now); (3) `heavyWindows`
+printed `07:00-9:00` (caught by a new test); (4) the charter promised an automatic buddy notification that no code can send (A18).
+
+## Status of every earlier finding
+
+| ID | v0.4 status | What was done / what is left |
+|---|---|---|
+| A1 | **MITIGATED, root cause OPEN** | `sweat_loss_g` is no longer passed as an input (state INPUT and OUTPUT names are split). State kwargs the installed `phs()` does not accept are dropped, counted and reported by the smoke test instead of crashing everything to Red. The smoke test also runs inside `integration_check.py`. The real names stay open until you run `scripts/check_signatures.py` (it now writes one file for you to attach). |
+| A2 | **MITIGATED** | Default radiant fallback is now `"solar"` (night: tr = tdb; unknown solar: the conservative constant). Still uncited, still a placeholder. New test documents the trade-off: with the constant every hour above 45 C air is gated, with solar only the sunniest. |
+| A3 | FIXED (v0.3) | Look-ahead one hour. |
+| A4 | MITIGATED | PLAN SAFETY line stays. With the rest-area check (A9) toy `hot_dry` no longer reaches Red under a perfect plan, because the plan says "no work" instead; the new `gulf_peak` scenario does fail, as it should. |
+| A5, A6, A7 | FIXED (v0.3) | Unchanged. |
+| A8 | **OPEN, critical path** | Needs your `check_signatures.py` output. |
+| A9 | **FIXED in code, numbers OPEN** | Rest area is a parameter (`shade`, `fan`, `cooled_cabin`; `run_v2 --rest-area`). The tracker tests whether 30 min of rest lowers predicted rectal temperature; if not, the planner outputs **no work** and the phone says "move to a cooler rest area". Limit: a worker with no accumulated strain cannot be tested, so the first hour is planned as before. Whether real PHS recovers at 40 C+ in shade is unknown until the real run. |
+| A10 | **FIXED in code, thresholds OPEN** | Every hourly row and the phone show a second line, "Body model (while resting)", from predicted rectal temperature (base 37.0, limit 38.0, recalled from ISO 7933, **U11 unverified**) using the same 50/75/100 % fractions. It never lowers the conditions level. |
+| A11 | **INSTRUMENTED, OPEN** | V2 now prints how often the fresh-start allowable time hit the 480-minute cap (toy: about 35 %). The ratio understates strain when the cap binds (the unsafe direction). Decide after the real run; options: raise the probe length if the library allows it, or use rectal-temperature margin. |
+| A12 | **MITIGATED** | The smoke test detects whether the library carries its water-loss total; the tracker sums segments itself when it does not (and when unknown, which can only overstate). `config.WATER_GUARD_G` (off by default) can force Red at a limit once the ISO 7933 value is confirmed (U10). |
+| A13 | **FIXED** | New `gulf_peak` scenario (air to 47 C, strong sun). Its tr leaves the model range, so hours are Red by the validity gate with no work planned. |
+| A14 | MITIGATED (v0.3) | Relabelled. Still needs a counterfactual definition, see `PILOT_PROTOCOL.md`. |
+| A15 | **FIXED (optional)** | Phone has a local break log ("Back at work" / "Break started"). Working past the plan plus 5 min grace raises the shown level by one, never lowers it. Stored only in that browser, never sent. If nobody uses it, the limit stands: adherence is unobserved. |
+| A16 | FIXED by design (v0.3) | |
+| A17 | OPEN | `check_signatures.py` now lists any test files inside the installed package. |
+
+## New findings this round
+
+| ID | Finding | Status |
+|---|---|---|
+| A18 | **Escalation did not exist.** The plan (R3) and the challenge (clinical escalation, "emergency escalations" metric) need it, and the charter said an unanswered Red alerts a buddy. The prototype has no transport, by design (A5), so that sentence was false. | **PARTLY FIXED.** The Red screen has "Call the site medic" (number given at export: `--medic-tel`, never invented) and "Message my buddy" (number kept on the phone). The worker starts both. No automatic notification. Charter section 5 corrected. |
+| A19 | **The validity gate is a cliff.** In the toy Gulf run 13:00 is Red by the gate (tr 60.5 C) and 14:00 is Green (tr 59.8 C): hotter, yet lower. Real PHS will probably say "almost no minutes" at 59 C, but nothing guarantees monotonic behaviour at the edge. | **OPEN, decide after the real run.** Candidate P2 rule: within 3 C of any range limit, raise one level. Not implemented because it is a design choice with no citation. |
+| A20 | **Supervisor view gave no task timing** (R5 asks for breaks, rotation and task timing). | **FIXED.** Supervisor shows "Best hours for heavy tasks" = hours when every group is Green or Yellow. Presentation of model output, conservative (worst group). |
+| A21 | **Scope.** The challenge title says "extreme heat and other climate-related occupational risks". HeatBank covers heat only. | **OPEN, state it.** Say so in the pitch; smoke, dust, UV, storms are future work, not claims. |
+| A22 | **"Personalised prevention" is archetype-level.** The worker picks their own type on the phone (nothing leaves the device), but nothing learns from the person. | **OPEN, state it.** Individual or wearable signals are a documented future option, not built. |
+| A23 | Hydration is a flag, health status and multi-day prior exposure are not modelled (acclimatisation is a yes/no input). | OPEN, in `LIMITATIONS.md`. |
+| A24 | Unattended escalation (Red unanswered) cannot work without a transport that carries an identifier. | By design; a consented live mode would need its own governance review. |
+
+## Bottlenecks, round 2
+
+* **B1 Schedule.** 16 days left on 11-04. Everything real waits on one command: `python scripts/check_signatures.py`. It now saves `out/check_signatures_output.txt`, so you attach one file.
+* **B2 Compute.** One full V2 run is about 19,900 PHS calls now (the Gulf scenario added a fourth day). `scripts/integration_check.py` times it on your machine and says whether to raise `STEP_MIN`. The stateless cache stays.
+* **B3 People.** `docs/REVIEW_PACKET.md` is a ready-to-send packet for the three reviewers (Thai strings, first-aid wording, licence questions). Send it today.
+* **B4 Scope cut order unchanged.** Never cut V3, the charter or the data declaration. Cut first: node, V4, third language, UTCI.
+
+## Decisions I need from you (each has a safe default already in the code)
+1. A10 thresholds: keep 37.0 to 38.0 as a proposal, or give me the source you want to cite.
+2. A19: do you want the "raise one level near the model edge" rule?
+3. Rest area for the demo: `shade` (honest default) or show a `cooled_cabin` comparison in the pitch.
+4. Medic number for the demo (or leave it unset and say so).
+
+---
+
+# Original audit (v0.3.0, written 2026-11-04). Status column is as of v0.3; see the v0.4 block above for the current state.
 
 Method: read every module of Parts 1-2, ran the toy-model flows, probed suspicious behaviour, then fixed what could be fixed
 without a decision from the owner. Nothing here was run against the real `pythermalcomfort`: it is not installed in the build

@@ -12,6 +12,7 @@ class HourPlan:
     baseline_work_min: int
     rotate_suggested: bool
     note: str
+    needs_cooler_rest: bool = False
 
 
 def baseline_work_min(remaining_allowable_min: float) -> int:
@@ -22,7 +23,7 @@ def baseline_work_min(remaining_allowable_min: float) -> int:
 
 
 def plan_hour(remaining_allowable_min: Optional[float], fail_safe: bool = False, degraded: bool = False,
-              heavy_task: bool = False) -> HourPlan:
+              heavy_task: bool = False, rest_ok: bool = True) -> HourPlan:
     base = baseline_work_min(remaining_allowable_min or 0.0)
     work = base
     note = ""
@@ -31,10 +32,14 @@ def plan_hour(remaining_allowable_min: Optional[float], fail_safe: bool = False,
     elif degraded:
         work = min(work, config.DEGRADED_WORK_CAP_MIN)
         note = "degraded mode: conservative preset"
+    needs_cooler = False
+    if not rest_ok and not fail_safe and remaining_allowable_min is not None:
+        # audit A9: the assumed rest area does not lower predicted rectal temperature, so "rest" would be false comfort.
+        work, needs_cooler, note = 0, True, "rest area does not cool at these conditions: no work planned, move to a cooler rest area"
     work = min(work, base)                       # P1 enforced in code, not by convention
     assert 0 <= work <= base <= 60
     rotate = heavy_task and work < 60 and not fail_safe
-    return HourPlan(work, 60 - work, base, rotate, note)
+    return HourPlan(work, 60 - work, base, rotate, note, needs_cooler)
 
 
 def suggest_shift_windows(hourly_work_min: List[int], min_work: int = 45) -> List[tuple]:

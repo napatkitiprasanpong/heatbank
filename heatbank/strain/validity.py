@@ -7,7 +7,7 @@ OK, ABOVE, BELOW, INVALID = "OK", "ABOVE_RANGE", "BELOW_RANGE", "INVALID"
 
 
 def check_inputs(tdb_c, tr_c, v_ms, rh_pct, met_wm2, clo) -> Tuple[str, List[str]]:
-    vals = {"tdb_c": tdb_c, "tr_c": tr_c, "v_ms": v_ms, "met_wm2": met_wm2, "clo": clo}
+    vals = {"tdb_c": tdb_c, "tr_minus_tdb_c": (tr_c - tdb_c) if (tr_c is not None and tdb_c is not None) else None, "v_ms": v_ms, "met_wm2": met_wm2, "clo": clo}
     reasons = []
     if any(x is None or (isinstance(x, float) and math.isnan(x)) for x in list(vals.values()) + [rh_pct]):
         return INVALID, ["missing or NaN input"]

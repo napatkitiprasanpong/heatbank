@@ -80,3 +80,7 @@ table.zones th { font-size: 15px; color: var(--muted); font-weight: 700; }
   table.zones td { border: 0; padding: 4px 12px; }
   table.zones td::before { content: attr(data-label) ": "; color: var(--muted); font-size: 14px; }
 }
+
+/* v0.4: help links and inputs on the Red screen (44 px touch targets) */
+a.btn { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 14px; margin: 6px 8px 6px 0; border: 3px solid var(--ink); border-radius: 6px; color: var(--ink); background: var(--panel); font-weight: 800; text-decoration: none; }
+input[type=tel] { font: inherit; color: var(--ink); background: var(--panel); border: 2px solid var(--line); border-radius: 6px; padding: 6px 10px; min-height: 44px; display: block; margin: 4px 0 8px; width: 100%; max-width: 20rem; }

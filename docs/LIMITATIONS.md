@@ -38,3 +38,8 @@ All values below are PROPOSED design parameters in `heatbank/config.py`. They ar
 - Rest is assumed to recover in shade; this may be false at high air temperature (A9).
 - Alert level mixes "hostile conditions" and "body near limit" (A10).
 - No site-node firmware exists. `heatbank/site/bias.py` is software only; the demo uses synthetic node data and proves plumbing, not a sensor.
+
+## Added in v0.4.0
+* PROPOSED: rest areas (`shade`, `fan`, `cooled_cabin` values), 30-minute recovery test, body-state mapping 37.0 to 38.0 C (U11 unverified), 5-minute break-log grace, optional water guard (off, U10). None is clinical guidance.
+* The rest-recovery test cannot judge a worker with no accumulated strain, so the first planned hour assumes rest works.
+* Heat only. Archetype-level, not individual. No automatic escalation. No field test. See `REQUIREMENTS_TRACE.md`.

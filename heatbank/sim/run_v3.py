@@ -10,10 +10,10 @@ from .tracker import ExposureTracker
 from .harness import shift_hours
 
 
-def clean_fraction():
+def clean_fraction(real: bool = False):
     hs = shift_hours(SyntheticScenario("hot_humid").hours())
     ar = [a for a in build_archetypes() if a.task == "moderate"][0]
-    trk = ExposureTracker(StrainEngine(toy_phs), ar)
+    trk = ExposureTracker(StrainEngine(None if real else toy_phs), ar)
     h = hs[4]
     for _ in range(12): trk.step(h, 10, True)
     _, frac, fs = trk.remaining_and_fraction(h)
@@ -32,8 +32,8 @@ FAULTS = {
 }
 
 
-def run():
-    frac, _ = clean_fraction()
+def run(real: bool = False):
+    frac, _ = clean_fraction(real)
     clean = alerts.compose(frac).level
     rows, ok_all = [], True
     for name, kw in FAULTS.items():
@@ -42,7 +42,7 @@ def run():
         passed = a.level >= clean and a.degraded_banner is not None
         ok_all &= passed
         rows.append((name, alerts.NAMES[clean], a.name, a.degraded_banner or "-", "PASS" if passed else "FAIL"))
-    print(f"clean baseline level: {alerts.NAMES[clean]} (fraction used {frac:.2f}, TOY model)\n")
+    print(f"clean baseline level: {alerts.NAMES[clean]} (fraction used {frac:.2f}, {'real pythermalcomfort' if real else 'TOY model'})\n")
     print(f"{'fault':34}{'baseline':10}{'with fault':12}{'banner':18}result")
     for r in rows: print(f"{r[0]:34}{r[1]:10}{r[2]:12}{r[3]:18}{r[4]}")
     return ok_all

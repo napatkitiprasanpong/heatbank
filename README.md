@@ -2,13 +2,14 @@
 
 Planning-stage prototype for the Climate-Resilient Worker Health challenge. **Not a medical device.** Thresholds are PROPOSED
 parameters, not clinical guidance. Everything runs on synthetic data unless you supply data you have the right to use.
-Status: Parts 1-3 of 3 built (weather -> PHS -> safe minutes -> planner -> alerts -> fallback -> simulation -> phone and supervisor views, Thai/English, site-bias software, documentation pack). **Nothing has run against the real PHS yet: start with `python scripts/check_signatures.py`.** Read `docs/AUDIT.md` first.
+Version 0.5.0. Status: Parts 1-3 of 3 built (weather -> PHS -> safe minutes -> planner -> alerts -> fallback -> simulation -> phone and supervisor views, Thai/English, site-bias software, documentation pack). **Nothing has run against the real PHS yet: start with `python scripts/check_signatures.py`.** Read `docs/AUDIT.md` first.
 
 ## Quick start
     pip install -e .                       # installs pythermalcomfort + thermofeel
     heatbank check                         # what is installed, what is unverified
     python scripts/check_signatures.py     # resolves plan U5/U6, send the output to Claude
-    make test                              # 70 tests
+    make verify                            # 99 tests + toy integration check (no library needed)
+    make check                             # on your machine with the library: writes the two files to send back
     heatbank plan --scenario hot_humid     # shift plan with alerts and water estimate (real PHS)
     heatbank simulate                      # V2 stress test, writes out/v2_summary.md
     heatbank simulate --forecast-only      # V2 on the path a node-less site really uses (radiant fallback)
@@ -20,7 +21,7 @@ open dashboard/index.html              # worker view, supervisor view: static, n
 Without installing anything: `python -m heatbank.cli ...` works from this folder.
 
 ## Where things are
-See `docs/AUDIT.md` (plot holes, bottlenecks, schedule), `docs/GOVERNANCE_CHARTER.md` (draft), `docs/DEMO_CHECKLIST.md`, `docs/ARCHITECTURE.md` (component map), `docs/LIMITATIONS.md` (every proposed parameter and open item),
+See `docs/REQUIREMENTS_TRACE.md` (are the requirements met?), `docs/AUDIT.md` (plot holes, bottlenecks, schedule), `docs/GOVERNANCE_CHARTER.md` (draft), `docs/DEMO_CHECKLIST.md`, `docs/ARCHITECTURE.md` (component map), `docs/LIMITATIONS.md` (every proposed parameter and open item),
 `docs/VALIDATION.md` (V1-V5 status), `DATA_SOURCES.md` (data declaration), `LICENSES/` (third-party notices).
 
 ## Rules the code enforces

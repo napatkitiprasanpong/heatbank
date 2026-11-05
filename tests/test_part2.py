@@ -105,10 +105,10 @@ class CoolClamp(unittest.TestCase):
 
     def test_scenarios_stay_inside_radiant_limit(self):
         from heatbank.strain import radiant, validity
-        for s in ("hot_humid", "hot_dry", "cool"):
+        for s in ("hot_humid", "hot_dry", "cool"):      # gulf_peak is intentionally outside the range (audit A13), see test_part4
             for h in SyntheticScenario(s).hours():
                 tr = radiant.tr_from_globe(h.tg_c, h.tdb_c, h.wind_ms)
-                self.assertLessEqual(tr, config.VALID_RANGES["tr_c"][1])
+                self.assertLessEqual(tr - h.tdb_c, config.VALID_RANGES["tr_minus_tdb_c"][1])
 
 
 if __name__ == "__main__":

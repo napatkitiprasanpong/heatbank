@@ -1,0 +1,2 @@
+[console_scripts]
+heatbank = heatbank.cli:main

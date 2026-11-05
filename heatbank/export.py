@@ -26,6 +26,14 @@ DEMO_ROSTER = {
 LEVEL_LABELS = ["Green", "Yellow", "Orange", "Red"]
 
 
+def _clean_tel(x):
+    """Digits and one leading + only, so nothing but a phone number can ever reach a tel: or sms: link."""
+    import re
+    if not x: return None
+    t = re.sub(r"[^0-9+]", "", str(x)); t = ("+" if t.startswith("+") else "") + t.replace("+", "")
+    return t if len(t) >= 3 else None
+
+
 def build_pack(engine, hours, archetypes, roster=None, zone_names=None, model_label="", provider="", synthetic=True,
                forecast_age_min=0.0, now=None, k=None) -> dict:
     now = now or datetime.datetime.now(datetime.timezone.utc)
@@ -40,11 +48,12 @@ def build_pack(engine, hours, archetypes, roster=None, zone_names=None, model_la
         "pack_version": 1, "heatbank_version": __version__,
         "generated_at": (now - datetime.timedelta(minutes=forecast_age_min)).isoformat(timespec="seconds"),
         "max_age_min": config.MAX_FORECAST_AGE_MIN, "degraded_work_cap_min": config.DEGRADED_WORK_CAP_MIN, "stale_min_level": config.EXPORT_STALE_MIN_LEVEL,
-        "stale_raise": config.EXPORT_STALE_RAISE,
+        "stale_raise": config.EXPORT_STALE_RAISE, "adherence_grace_min": config.ADHERENCE_GRACE_MIN,
         "provenance": {"weather_source": provider, "strain_model": model_label, "synthetic": synthetic, "disclaimer": DISCLAIMER,
                        "weather_date": sh[0].time_iso[:10] if sh else None},
         "hours": [r["hour"] for r in next(iter(per_arch.values()))],
         "archetypes": arch_meta, "plans": per_arch,
+        "escalation": {"medic_tel": _clean_tel(config.MEDIC_TEL)},
         "level_names": LEVEL_LABELS,
         "action_keys": ["normal_work", "drink_shade_break", "reduce_cool_now", "stop_cool_buddy"],
         "banner_keys": {"offline": "banner_offline", "stale": "banner_stale", "none": "banner_no_data"},
@@ -72,6 +81,7 @@ def main(argv=None):
     ap.add_argument("--toy", action="store_true", help="TOY model (not physiology). Real PHS needs pythermalcomfort.")
     ap.add_argument("--forecast-only", action="store_true", help="strip the synthetic globe temperature: exercises the radiant fallback")
     ap.add_argument("--out", default="dashboard/data.js")
+    ap.add_argument("--medic-tel", default=None, help="site medic phone number for the one-tap call on the Red screen (never invented by HeatBank)")
     a = ap.parse_args(argv)
     if a.toy:
         print(f"*** {TOY_LABEL}: demo only ***", file=sys.stderr)
@@ -84,6 +94,7 @@ def main(argv=None):
             raise SystemExit("pythermalcomfort is not installed (use --toy for a demo)")
         if problems: raise SystemExit("model smoke test failed: " + "; ".join(problems))
     import dataclasses
+    config.MEDIC_TEL = a.medic_tel
     prov = SyntheticScenario(a.scenario); hours = prov.hours()
     if a.forecast_only: hours = [dataclasses.replace(h, tg_c=None) for h in hours]
     pack = build_pack(eng, hours, build_archetypes(), DEMO_ROSTER, DEMO_ZONES, label, prov.name, True)

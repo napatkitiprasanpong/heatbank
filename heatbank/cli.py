@@ -98,9 +98,9 @@ def cmd_plan(a):
         out = day_outlook(eng, ar, hours)
         sim = simulate_worker(eng, ar, hours, "planned", 1.0)
         lines += [f"## {ar.id}: {ar.label}", "",
-                  "| hour | allowable if rested (min) | work / rest (min) | peak alert | used at end | water est. (ml) |", "|---|---|---|---|---|---|"]
+                  "| hour | allowable if rested (min) | work / rest (min) | conditions level | body state (model) | used at end | water est. (ml) | note |", "|---|---|---|---|---|---|---|---|"]
         for o, hr in zip(out["hours"], sim.hourly):
-            lines.append(f"| {hr['hour']}:00 | {'fail-safe' if o['fail_safe'] else o['allowable_min']} | {hr['work_planned_min']} / {60 - hr['work_planned_min']} | {hr['level_max']} | {hr['fraction_used_end']} | {hr['water_est_ml']} |")
+            lines.append(f"| {hr['hour']}:00 | {'fail-safe' if o['fail_safe'] else o['allowable_min']} | {hr['work_planned_min']} / {60 - hr['work_planned_min']} | {hr['level_max']} | {hr.get('state_level') or '-'} | {hr['fraction_used_end']} | {hr['water_est_ml']} | {'rest area does not cool: move to cooler rest' if not hr.get('rest_ok', True) else ('outside model range: Red' if hr.get('gate') else '')} |")
             csv_rows.append(dict(archetype=ar.id, **hr, allowable_fresh_min=o["allowable_min"], fail_safe=o["fail_safe"]))
         from .planner.planner import suggest_shift_windows
         w = suggest_shift_windows([h["work_planned_min"] for h in sim.hourly]); first = out["hours"][0]["hour"]
@@ -127,8 +127,11 @@ def main(argv=None):
     s = sub.add_parser("simulate", help="V2 scenario stress test (SIMULATED)")
     s.add_argument("--toy", action="store_true"); s.add_argument("--adherence", nargs="+", type=float, default=[1.0, 0.7])
     s.add_argument("--out", default="out"); s.add_argument("--forecast-only", action="store_true")
-    s.set_defaults(fn=lambda a: run_v2.run(a.toy, a.adherence, a.out, a.forecast_only))
-    sub.add_parser("faults", help="V3 fault injection").set_defaults(fn=lambda a: sys.exit(0 if run_v3.run() else 1))
+    s.add_argument("--rest-area", choices=sorted(config.REST_AREAS), default=config.REST_AREA, help="where rest happens (audit A9)")
+    s.add_argument("--probe-min", type=int, default=None, help="allowable-time probe length, default 480 (try 720, audit A11)")
+    s.set_defaults(fn=lambda a: run_v2.run(a.toy, a.adherence, a.out, a.forecast_only, a.rest_area, a.probe_min))
+    s = sub.add_parser("faults", help="V3 fault injection"); s.add_argument("--real", action="store_true", help="baseline from real pythermalcomfort instead of the toy model")
+    s.set_defaults(fn=lambda a: sys.exit(0 if run_v3.run(a.real) else 1))
     a = p.parse_args(argv)
     a.fn(a)
 

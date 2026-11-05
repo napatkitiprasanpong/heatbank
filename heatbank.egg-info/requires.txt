@@ -1,0 +1,3 @@
+numpy
+pythermalcomfort==4.8.0
+thermofeel==2.3.0

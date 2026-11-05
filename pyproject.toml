@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "heatbank"
-version = "0.3.0"
+version = "0.5.3"
 description = "HeatBank: a heat budget for every shift. Planning-stage prototype, not a medical device."
 requires-python = ">=3.9"
-dependencies = ["numpy", "pythermalcomfort", "thermofeel"]   # pin exact versions after `python scripts/check_signatures.py` (U6)
+dependencies = ["numpy", "pythermalcomfort==4.8.0", "thermofeel==2.3.0"]   # pin exact versions after `python scripts/check_signatures.py` (U6)
 
 [project.scripts]
 heatbank = "heatbank.cli:main"

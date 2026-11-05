@@ -3,6 +3,11 @@
   var P = window.HEATBANK, C = window.HBCore, U = window.HBUI, h = U.h;
   var demo = !!P.provenance.synthetic;
   var S = { lang: "en", aid: "A09", idx: 0, cond: "ok" };
+  // Optional break log (audit A15). Lives in this browser only (localStorage, guarded); nothing is ever sent anywhere.
+  var LOGKEY = "heatbank_breaklog_v1";
+  function loadLog() { try { var x = JSON.parse(window.localStorage.getItem(LOGKEY)); if (x && typeof x === "object") return x; } catch (e) {} return { hourKey: "", workedMs: 0, since: null }; }
+  function saveLog(r) { try { window.localStorage.setItem(LOGKEY, JSON.stringify(r)); } catch (e) {} S.log = r; }
+  S.log = loadLog();
   var L = function (k, v) { return C.fmt(P.strings[S.lang][k], v); };
 
   function condState() {
@@ -25,6 +30,11 @@
     var planned = row ? P.level_names.indexOf(row.level_max) : 3;
     var d = C.degrade(planned, st, P);
     var level = d.level;
+    var worked = C.workedNow(S.log, Date.now()).minutes, overdue = false;
+    if (row && st.haveForecast) {   // A15: working past the plan raises the shown level by one, never lowers it
+      var ar = C.adherenceRaise(degradedWork(row.work_planned_min, st, d), worked, level, P.adherence_grace_min === undefined ? 5 : P.adherence_grace_min);
+      level = ar.level; overdue = ar.overdue;
+    }
 
     if (demo) ban.appendChild(h("div", { class: "banner demo", text: L("banner_demo") }));
     if (d.banner) ban.appendChild(h("div", { class: "banner", role: "status", text: L(d.banner) }));
@@ -37,6 +47,12 @@
     ]);
     main.appendChild(slab);
 
+    if (overdue) main.appendChild(h("p", { class: "banner", role: "status", text: L("overdue_note") }));
+    if (row && st.haveForecast && row.gate) main.appendChild(h("p", { class: "banner", role: "status", text: L("gate_note") }));
+    if (row && st.haveForecast && row.rest_ok === false) main.appendChild(h("p", { class: "banner", role: "status", text: L("norecovery_note") }));
+    if (row && st.haveForecast && row.state_level) {   // A10: second reading, next to (never instead of) the conditions level
+      main.appendChild(h("p", { class: "muted", text: L("state_line", { level: L("level_" + P.level_names.indexOf(row.state_level)) }) + " " + L("state_note") }));
+    }
     if (row && st.haveForecast) {   // no forecast => no plan content at all, only the fail-safe slab
       var frac = Math.max(0, Math.min(1, row.fraction_used_end || 0)), pct = Math.round(frac * 100);
       var w = degradedWork(row.work_planned_min, st, d);
@@ -56,6 +72,13 @@
           w < 60 ? h("div", { class: "r", style: "width:" + ((60 - w) / 60 * 100) + "%", text: L("rest") + " " + (60 - w) }) : null]),
         h("p", { class: "muted", text: L("work_rest_line", { w: w, r: 60 - w }) + (row.rotate ? " " + L("rotate_yes") + "." : "") })
       ]));
+      main.appendChild(h("section", { class: "card" }, [
+        h("h2", { text: L("log_title") }),
+        h("div", { class: "ctrl" }, [
+          (function () { var b = h("button", { type: "button", text: L("log_work") }); b.addEventListener("click", function () { saveLog(C.startWork(S.log, Date.now())); render(); }); return b; })(),
+          (function () { var b = h("button", { type: "button", text: L("log_break") }); b.addEventListener("click", function () { saveLog(C.startBreak(S.log, Date.now())); render(); }); return b; })()]),
+        h("p", { class: "muted", text: L("log_worked", { n: worked }) + " " + L("log_note") })
+      ]));
       var levels = plan.map(function (r) { return P.level_names.indexOf(r.level_max); });
       var nc = C.nextChange(levels, idx);
       main.appendChild(h("section", { class: "card" }, [
@@ -74,8 +97,26 @@
     if (level >= 3) {
       main.appendChild(h("section", { class: "card redcard" }, [h("h2", { text: L("red_card_title") }), h("p", { text: L("red_card_body") }),
         h("p", { class: "muted", text: L("red_card_review") })]));
+      main.appendChild(escalationCard());
     }
     renderStatic(st);
+  }
+
+  // Audit A18: one-tap help that the WORKER starts. Nothing is sent by the page itself. Numbers are reduced to digits and a leading +.
+  function cleanTel(x) { var t = String(x || "").replace(/[^0-9+]/g, ""); t = (t.charAt(0) === "+" ? "+" : "") + t.replace(/\+/g, ""); return t.length >= 3 ? t : ""; }
+  function escalationCard() {
+    var medic = cleanTel(P.escalation && P.escalation.medic_tel), kids = [h("h2", { text: L("esc_title") })];
+    kids.push(medic ? h("a", { class: "btn", href: "tel:" + medic, text: L("esc_call") + " (" + medic + ")" }) : h("p", { class: "muted", text: L("esc_none") }));
+    var saved = ""; try { saved = window.localStorage.getItem("heatbank_buddy_v1") || ""; } catch (e) {}
+    var inp = h("input", { type: "tel", id: "buddy", value: saved, "aria-label": L("esc_buddy_label"), placeholder: L("esc_buddy_label") });
+    inp.value = saved;
+    var link = h("a", { class: "btn", href: saved ? "sms:" + cleanTel(saved) + "?&body=" + encodeURIComponent(L("esc_msg")) : "#", text: L("esc_buddy") });
+    inp.addEventListener("change", function () {
+      var v = cleanTel(inp.value); try { window.localStorage.setItem("heatbank_buddy_v1", v); } catch (e) {}
+      link.setAttribute("href", v ? "sms:" + v + "?&body=" + encodeURIComponent(L("esc_msg")) : "#");
+    });
+    kids.push(h("label", {}, [h("span", { class: "muted", text: L("esc_buddy_label") }), inp]), link, h("p", { class: "muted", text: L("esc_note") }));
+    return h("section", { class: "card" }, kids);
   }
 
   // Degraded mode never lengthens work; when raised, show at most the conservative cap (mirrors planner.DEGRADED_WORK_CAP_MIN = 30).
@@ -116,4 +157,5 @@
     render();
   }
   boot();
+  setInterval(function () { if (S.log && S.log.since !== null) render(); }, 30000);
 })();

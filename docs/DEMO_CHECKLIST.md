@@ -1,7 +1,7 @@
 # Demo and submission checklist
 
 ## Before recording (run in this order)
-1. `pip install -e .` then `python scripts/check_signatures.py` and fix the two mapping dicts in `strain/phs_wrapper.py` if needed (U5/U6, audit A1).
+1. `pip install -e .` then `make check` (writes `out/check_signatures_output.txt` and `out/integration_check.txt`) and fix the two mapping dicts in `strain/phs_wrapper.py` if needed (U5/U6, audit A1).
 2. `make test` : all green except tests that need the real library, which should now run too.
 3. `heatbank check` : no UNVERIFIED surprises you cannot explain.
 4. Real run: `heatbank simulate` and `heatbank simulate --forecast-only` . Read the `PLAN SAFETY` line for each scenario and the model-error count (must be 0).
@@ -18,6 +18,7 @@
 | 1:20 | Connection: Offline 5 hours | "The forecast is old, so the level goes up and a banner says why. Never down." |
 | 1:40 | Connection: No forecast | "No data means Red. Plan content is hidden, not guessed." |
 | 2:00 | Supervisor view | "Zones, counts, first break, rotation. Small crews are pooled. The site status shows the worst group with no counts, so a small group cannot hide." |
+| 2:15 | Red screen | "Help is one tap, started by the worker. Nothing is sent automatically." |
 | 2:30 | `out/v2_summary.md` | State PLAN SAFETY result honestly. "Simulated. We do not claim real-world lead time or false-alarm rate." |
 | 2:50 | Governance charter | "Data use restriction, pooled groups, no individual health data." |
 

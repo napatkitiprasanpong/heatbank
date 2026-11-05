@@ -50,3 +50,11 @@ def evaluate(forecast_age_min: Optional[float], have_forecast: bool = True, offl
     if model_fail_safe:
         flag("model gate / model error", "banner_model", min_level=RED)
     return fs
+
+
+def adherence_raise(planned_work_min: float, worked_min: float, level: int):
+    """Audit A15. The phone cannot see what the worker did, so an optional local break log tells it. Working longer than the plan
+    (plus a grace period) RAISES the shown level by one; it never lowers it (P2). Returns (level, overdue).
+    Mirrored in dashboard/core.js (parity test)."""
+    overdue = worked_min > planned_work_min + config.ADHERENCE_GRACE_MIN
+    return (min(RED, level + 1) if overdue else level), overdue

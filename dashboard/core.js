@@ -38,10 +38,41 @@
     return null;
   }
 
+  // Audit A15. Optional local break log: {hourKey, workedMs, since|null}. Pure so it can be tested; storage is the caller's job.
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function hourKey(nowMs) { var d = new Date(nowMs); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + "T" + pad2(d.getHours()); }
+  function hourStartMs(nowMs) { var d = new Date(nowMs); d.setMinutes(0, 0, 0); return d.getTime(); }
+  function workedNow(rec, nowMs) {
+    var key = hourKey(nowMs), same = rec && rec.hourKey === key;
+    var w = same ? (rec.workedMs || 0) : 0;
+    var since = rec && rec.since !== null && rec.since !== undefined ? (same ? rec.since : hourStartMs(nowMs)) : null;
+    var run = since === null ? 0 : Math.max(0, nowMs - since);
+    return { hourKey: key, workedMs: w, since: since, minutes: Math.floor((w + run) / 60000) };
+  }
+  function startWork(rec, nowMs) { var r = workedNow(rec, nowMs); return { hourKey: r.hourKey, workedMs: r.workedMs, since: r.since === null ? nowMs : r.since }; }
+  function startBreak(rec, nowMs) { var r = workedNow(rec, nowMs); return { hourKey: r.hourKey, workedMs: r.workedMs + (r.since === null ? 0 : Math.max(0, nowMs - r.since)), since: null }; }
+  // Mirrors fallback.adherence_raise: working past the plan (plus grace) RAISES the level by one, never lowers it (P2).
+  function adherenceRaise(planned, worked, level, grace) {
+    var overdue = worked > planned + grace;
+    return { level: overdue ? Math.min(RED, level + 1) : level, overdue: overdue };
+  }
+
+  // R5 task timing: contiguous runs of hours where EVERY crew group is at or below maxLevel (default Yellow). Display only; uses the worst group, so conservative.
+  function heavyWindows(levels, hours, maxLevel) {
+    var m = maxLevel === undefined ? 1 : maxLevel, out = [], start = -1;
+    for (var i = 0; i <= levels.length; i++) {
+      var ok = i < levels.length && levels[i] <= m;
+      if (ok && start < 0) start = i;
+      if (!ok && start >= 0) { out.push({ from: hours[start], to: pad2(parseInt(hours[i - 1], 10) + 1) }); start = -1; }
+    }
+    return out;
+  }
+
   function fmt(s, vars) {
     return String(s).replace(/\{(\w+)\}/g, function (_, k) { return vars && vars[k] !== undefined ? vars[k] : "{" + k + "}"; });
   }
 
-  var api = { degrade: degrade, hourIndex: hourIndex, ageMinutes: ageMinutes, nextChange: nextChange, fmt: fmt };
+  var api = { degrade: degrade, hourIndex: hourIndex, ageMinutes: ageMinutes, nextChange: nextChange, fmt: fmt, heavyWindows: heavyWindows,
+              hourKey: hourKey, workedNow: workedNow, startWork: startWork, startBreak: startBreak, adherenceRaise: adherenceRaise };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.HBCore = api;
 })(typeof window !== "undefined" ? window : this);

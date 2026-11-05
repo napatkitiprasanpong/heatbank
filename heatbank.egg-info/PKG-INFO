@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: heatbank
+Version: 0.5.3
+Summary: HeatBank: a heat budget for every shift. Planning-stage prototype, not a medical device.
+Requires-Python: >=3.9
+Requires-Dist: numpy
+Requires-Dist: pythermalcomfort==4.8.0
+Requires-Dist: thermofeel==2.3.0

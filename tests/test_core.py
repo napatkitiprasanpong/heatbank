@@ -102,16 +102,42 @@ class Pipeline(unittest.TestCase):
 
 @unittest.skipUnless(__import__("importlib").util.find_spec("pythermalcomfort"), "pythermalcomfort not installed")
 class V1WrapperMatchesLibrary(unittest.TestCase):
-    """V1 (partial): wrapper output must equal a direct library call. Uses the REAL library; kwarg names are U6."""
-    def test_grid(self):
+    """V1 (partial): wrapper output must equal a direct library call, plus physical sanity checks. Uses the REAL library
+    (4.8.0 conventions: posture text, met in met units, ISO 7933:2023). Does not prove the library is right, only that we call it correctly."""
+    @staticmethod
+    def _direct(tdb, tr, v, rh, met_wm2, clo, **kw):
         from pythermalcomfort.models import phs
+        return phs(tdb, tr, v, rh, met_wm2 / config.W_PER_MET, clo, "standing", model=config.PHS_MODEL, limit_inputs=False,
+                   round_output=False, acclimatized=100, drink=1, duration=480, **kw)
+
+    def test_grid(self):
         from heatbank.strain.phs_wrapper import _get, LIMIT_FIELDS
         e = StrainEngine()
         for tdb, rh, met, clo in [(30, 50, 100, 0.5), (35, 60, 165, 0.5), (40, 30, 230, 0.9), (45, 20, 165, 0.7)]:
             r = e.run_segment(tdb, tdb + 10, 1.0, rh, met, clo, 2, 100)
-            lib = phs(tdb, tdb + 10, 1.0, rh, met, clo, 2, acclimatized=100, drink=1, duration=480)
+            lib = self._direct(tdb, tdb + 10, 1.0, rh, met, clo)
             exp = min(_get(lib, LIMIT_FIELDS["tre"]), _get(lib, LIMIT_FIELDS["loss95"]), 480.0)
-            self.assertAlmostEqual(r.safe_minutes, exp, places=6)
+            self.assertEqual(r.status, "OK", r.reasons); self.assertAlmostEqual(r.safe_minutes, exp, places=6)
+        self.assertEqual(e.model_errors, 0)
+
+    def test_hotter_or_heavier_never_allows_more_time(self):
+        e = StrainEngine()
+        t = [e.run_segment(tdb, tdb + 10, 1.0, 50.0, 165, 0.5, 2, 100).safe_minutes for tdb in (30, 35, 40, 45)]
+        self.assertEqual(t, sorted(t, reverse=True))
+        m = [e.run_segment(38, 48, 1.0, 50.0, met, 0.5, 2, 100).safe_minutes for met in (100, 165, 230)]
+        self.assertEqual(m, sorted(m, reverse=True))
+
+    def test_carry_over_reduces_remaining_time_and_smoke_test_is_clean(self):
+        e = StrainEngine(); self.assertEqual(e.smoke_test(), [])
+        a = (38.0, 48.0, 1.0, 50.0, 230.0, 0.9, 2, 0, 1)
+        s = e.run_segment(*a, duration_min=120).state
+        self.assertLess(e.run_segment(*a, duration_min=480, state=s).safe_minutes, e.run_segment(*a, duration_min=480).safe_minutes)
+
+    def test_shade_rest_at_moderate_heat_lowers_core_temperature(self):
+        e = StrainEngine(); a = (33.0, 40.0, 1.0, 50.0, 230.0, 0.9, 2, 100, 1)
+        w = e.run_segment(*a, duration_min=90)
+        r = e.run_segment(33.0, 33.0, 1.0, 50.0, 100.0, 0.9, 2, 100, 1, duration_min=30, state=w.state)
+        self.assertEqual(r.status, "OK", r.reasons); self.assertLess(r.t_re_end, w.t_re_end)
 
 
 if __name__ == "__main__":

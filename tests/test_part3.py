@@ -164,16 +164,16 @@ class AuditFixes(unittest.TestCase):
         s = e.run_segment(*a, duration_min=60).state
         e.run_segment(*a, duration_min=60, state=s); e.run_segment(*a, duration_min=60, state=s); self.assertEqual(e.calls, 3)
 
-    def test_radiant_constant_mode_is_default_and_unchanged(self):
-        self.assertEqual(config.TR_FALLBACK_MODE, "constant"); self.assertEqual(radiant.tr_fallback(30.0, 0.0), 45.0)
+    def test_radiant_constant_mode_still_available(self):
+        config.TR_FALLBACK_MODE = "constant"
+        try: self.assertEqual(radiant.tr_fallback(30.0, 0.0), 45.0)
+        finally: config.TR_FALLBACK_MODE = "solar"
 
-    def test_radiant_solar_mode_night_equals_air_temp(self):
-        config.TR_FALLBACK_MODE = "solar"
-        try:
-            self.assertEqual(radiant.tr_fallback(27.0, 0.0), 27.0)
-            self.assertEqual(radiant.tr_fallback(30.0, 1000.0), 45.0)
-            self.assertEqual(radiant.tr_fallback(30.0, None), 45.0)          # unknown solar: keep the conservative constant
-        finally: config.TR_FALLBACK_MODE = "constant"
+    def test_radiant_solar_mode_is_default_night_equals_air_temp(self):
+        self.assertEqual(config.TR_FALLBACK_MODE, "solar")                    # v0.4 default
+        self.assertEqual(radiant.tr_fallback(27.0, 0.0), 27.0)
+        self.assertEqual(radiant.tr_fallback(30.0, 1000.0), 45.0)
+        self.assertEqual(radiant.tr_fallback(30.0, None), 45.0)               # unknown solar: keep the conservative constant (P2)
 
     def test_lookahead_never_adds_work_P1(self):
         eng = StrainEngine(toy_phs)
@@ -188,7 +188,7 @@ class AuditFixes(unittest.TestCase):
         import tempfile
         from heatbank.sim import run_v2
         d = tempfile.mkdtemp(); run_v2.run(True, [1.0], d, forecast_only=True)
-        md = open(os.path.join(d, "v2_summary.md")).read()
+        with open(os.path.join(d, "v2_summary.md"), encoding="utf-8") as fh: md = fh.read()
         self.assertIn("PLAN SAFETY", md); self.assertIn("forecast-only fallback", md); self.assertIn("model errors", md)
 
 

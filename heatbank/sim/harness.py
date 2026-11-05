@@ -21,6 +21,7 @@ class RunResult:
     worked_min: int
     steps: int
     hourly: list = field(default_factory=list)
+    no_recovery_hours: int = 0       # A9: shift hours where the rest area did not cool a strained worker (plan said: no work)
 
 
 def shift_hours(hours: List[WeatherHour]) -> List[WeatherHour]:
@@ -34,28 +35,30 @@ def simulate_worker(engine: StrainEngine, archetype, hours: List[WeatherHour], m
     trk = ExposureTracker(engine, archetype)
     minutes_at = {n: 0 for n in alerts.NAMES}
     t, first_o, first_r, worked = 0, None, None, 0
-    steps, hourly = 0, []
+    steps, hourly, no_rec = 0, [], 0
     la = config.PLAN_LOOKAHEAD_H if lookahead is None else lookahead
     sh = shift_hours(hours)
     for i, h in enumerate(sh):
         rem, frac, fs = trk.remaining_and_fraction(h)
+        rest_ok = trk.rest_recovers(h) is not False          # A9: None (cannot tell / not strained) is not treated as failure
         if mode == "planned":
             if la > 0 and not fs:                     # audit A3: size the hour against the worse of now and the next hour(s)
                 rem_la = lookahead_remaining(trk, sh[i:i + 1 + la])
                 if rem_la is None: fs = True
                 else: rem = min(rem, rem_la)
-            plan = plan_hour(rem, fail_safe=fs, degraded=degraded, heavy_task=archetype.task == "heavy")
+            plan = plan_hour(rem, fail_safe=fs, degraded=degraded, heavy_task=archetype.task == "heavy", rest_ok=rest_ok)
             work_budget = plan.work_min
+            no_rec += 1 if plan.needs_cooler_rest else 0
         else:
             work_budget = 60
-        sweat_before, level_h = trk.sweat_g, 0
+        sweat_before, level_h, gate_h = trk.sweat_g, 0, False
         for off in range(0, 60, config.STEP_MIN):
             planned_work = off < work_budget
             working = planned_work or (mode == "planned" and rng.random() > adherence)   # skipped rest = worked anyway
             r = trk.step(h, config.STEP_MIN, working)
             _, frac, fs = trk.remaining_and_fraction(h)
             a = alerts.compose(frac, fs)
-            level_h = max(level_h, a.level)
+            level_h = max(level_h, a.level); gate_h = gate_h or fs
             minutes_at[a.name] += config.STEP_MIN
             worked += config.STEP_MIN if working else 0
             if a.level >= alerts.ORANGE and first_o is None: first_o = t
@@ -64,8 +67,11 @@ def simulate_worker(engine: StrainEngine, archetype, hours: List[WeatherHour], m
         hourly.append({"hour": h.time_iso[11:13], "work_planned_min": work_budget, "level_max": alerts.NAMES[level_h],
                        "fraction_used_end": None if frac is None else round(frac, 3),
                        "water_est_ml": round(trk.sweat_g - sweat_before),
-                       "rotate": bool(mode == "planned" and plan.rotate_suggested)})
-    return RunResult(archetype.id, mode, adherence, minutes_at, first_o, first_r, worked, steps, hourly)
+                       "rotate": bool(mode == "planned" and plan.rotate_suggested),
+                       "state_level": (lambda s: None if s is None else alerts.NAMES[s])(trk.state_level()),   # A10: body-state reading, shown next to level_max
+                       "gate": bool(gate_h),                                                          # model gate / error somewhere this hour (Red by rule)
+                       "rest_ok": bool(rest_ok)})                                                          # A9
+    return RunResult(archetype.id, mode, adherence, minutes_at, first_o, first_r, worked, steps, hourly, no_rec)
 
 
 def lead_time(r: RunResult) -> Optional[int]:
