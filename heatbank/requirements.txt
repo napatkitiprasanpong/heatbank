@@ -1,0 +1,6 @@
+# Pin exact versions after running scripts/check_signatures.py (plan U6).
+pythermalcomfort==4.8.0
+llvmlite==0.50.0      # versions from the last good run (out/check_signatures_output.txt); numba needs a matching llvmlite
+numba==0.68.1
+thermofeel==2.3.0
+numpy

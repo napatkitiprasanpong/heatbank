@@ -56,6 +56,10 @@ for (const page of ["worker.html", "supervisor.html"]) {
     const main = app.byId.main;
     check(page + ": renders something", text(main).length > 20);
     check(page + ": demo banner present", text(app.byId.banners).toLowerCase().includes("demo"));
+    if (P.provenance.weather_real) {   // v0.6: real weather replay must say so, and must still say crew/clock are simulated, and credit NASA
+      check(page + ": real-weather banner says real weather and simulated crew", /real weather/i.test(text(app.byId.banners)) && /simulated/i.test(text(app.byId.banners)));
+      check(page + ": real-weather footer credits the data provider and keeps the simulated-crew chip", /NASA/.test(text(app.byId.foot)) && /SIMULATED crew/i.test(text(app.byId.foot)));
+    }
     for (const cond of ["offline", "stale", "none", "ok"]) {
       app.byId.cond.value = cond; app.byId.cond.fire("change", { target: app.byId.cond });
       if (cond === "none") {

@@ -12,7 +12,9 @@ from ..weather.types import WeatherHour
 
 def work_conditions(h: WeatherHour):
     v = config.air_speed_from_wind(h.wind_ms)
-    tr = radiant.tr_from_globe(h.tg_c, h.tdb_c, v) if h.tg_c is not None else radiant.tr_fallback(h.tdb_c, h.solar_wm2)
+    lo_g, hi_g = config.PLAUSIBLE["tg_c"]
+    tg = h.tg_c if (h.tg_c is not None and h.tg_c == h.tg_c and lo_g <= h.tg_c <= hi_g) else None     # v0.5.4: fill value => unknown
+    tr = radiant.tr_from_globe(tg, h.tdb_c, v) if tg is not None else radiant.tr_fallback(h.tdb_c, h.solar_wm2)
     return h.tdb_c, tr, v, h.rh_pct
 
 

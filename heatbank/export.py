@@ -35,7 +35,7 @@ def _clean_tel(x):
 
 
 def build_pack(engine, hours, archetypes, roster=None, zone_names=None, model_label="", provider="", synthetic=True,
-               forecast_age_min=0.0, now=None, k=None) -> dict:
+               forecast_age_min=0.0, now=None, k=None, weather_real=False, attribution=None) -> dict:
     now = now or datetime.datetime.now(datetime.timezone.utc)
     sh = shift_hours(hours)
     per_arch = {}
@@ -50,7 +50,9 @@ def build_pack(engine, hours, archetypes, roster=None, zone_names=None, model_la
         "max_age_min": config.MAX_FORECAST_AGE_MIN, "degraded_work_cap_min": config.DEGRADED_WORK_CAP_MIN, "stale_min_level": config.EXPORT_STALE_MIN_LEVEL,
         "stale_raise": config.EXPORT_STALE_RAISE, "adherence_grace_min": config.ADHERENCE_GRACE_MIN,
         "provenance": {"weather_source": provider, "strain_model": model_label, "synthetic": synthetic, "disclaimer": DISCLAIMER,
-                       "weather_date": sh[0].time_iso[:10] if sh else None},
+                       "weather_date": sh[0].time_iso[:10] if sh else None,
+                       # v0.6: the WEATHER may be real (replay of one day) while crew and clock stay simulated, so `synthetic` stays True
+                       "weather_real": bool(weather_real), "attribution": attribution},
         "hours": [r["hour"] for r in next(iter(per_arch.values()))],
         "archetypes": arch_meta, "plans": per_arch,
         "escalation": {"medic_tel": _clean_tel(config.MEDIC_TEL)},
@@ -78,6 +80,9 @@ def write_js(pack: dict, path: str):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Export the dashboard pack. " + DISCLAIMER)
     ap.add_argument("--scenario", choices=sorted(SCENARIOS), default="hot_humid")
+    ap.add_argument("--nasa-power", nargs=3, metavar=("LAT", "LON", "YYYY-MM-DD"), help="use REAL weather of one day from NASA POWER (D8) instead of a synthetic scenario")
+    ap.add_argument("--utc-offset", type=float, default=4.0, help="local time = UTC + this many hours (default 4.0, UAE)")
+    ap.add_argument("--nasa-refresh", action="store_true", help="download again even if a saved copy exists")
     ap.add_argument("--toy", action="store_true", help="TOY model (not physiology). Real PHS needs pythermalcomfort.")
     ap.add_argument("--forecast-only", action="store_true", help="strip the synthetic globe temperature: exercises the radiant fallback")
     ap.add_argument("--out", default="dashboard/data.js")
@@ -95,11 +100,20 @@ def main(argv=None):
         if problems: raise SystemExit("model smoke test failed: " + "; ".join(problems))
     import dataclasses
     config.MEDIC_TEL = a.medic_tel
-    prov = SyntheticScenario(a.scenario); hours = prov.hours()
+    real = bool(a.nasa_power)
+    if real:
+        from .weather.factory import make_provider
+        prov = make_provider(None, nasa_power=a.nasa_power, utc_offset_h=a.utc_offset, nasa_refresh=a.nasa_refresh)
+        try: hours = prov.hours()
+        except Exception as e: raise SystemExit(f"could not get the real weather: {e}")
+    else:
+        prov = SyntheticScenario(a.scenario); hours = prov.hours()
     if a.forecast_only: hours = [dataclasses.replace(h, tg_c=None) for h in hours]
-    pack = build_pack(eng, hours, build_archetypes(), DEMO_ROSTER, DEMO_ZONES, label, prov.name, True)
+    from .weather.nasa_power import CREDIT
+    pack = build_pack(eng, hours, build_archetypes(), DEMO_ROSTER, DEMO_ZONES, label, prov.name, True,
+                      weather_real=real, attribution=CREDIT if real else None)
     write_js(pack, a.out)
-    print(f"wrote {a.out} ({os.path.getsize(a.out)//1024} KB), scenario {a.scenario}, model {label}")
+    print(f"wrote {a.out} ({os.path.getsize(a.out)//1024} KB), weather {prov.name}{' (REAL)' if real else ' (synthetic)'}, model {label}")
 
 
 if __name__ == "__main__":

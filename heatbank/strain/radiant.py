@@ -13,6 +13,10 @@ def tr_fallback(tdb_c: float, solar_wm2=None) -> float:
     """PLACEHOLDER when no globe temperature exists. Reported as radiant_source='fallback_offset'.
     Mode "solar" (config.TR_FALLBACK_MODE) scales the offset by forecast shortwave radiation; with no solar value it
     falls back to the constant offset (never lower than known)."""
+    if solar_wm2 is not None:
+        lo_s, hi_s = config.PLAUSIBLE["solar_wm2"]
+        if solar_wm2 != solar_wm2 or not (lo_s <= solar_wm2 <= hi_s):
+            solar_wm2 = None          # v0.5.4: fill value (-999) or NaN is UNKNOWN, not night; unknown => the conservative constant offset
     if config.TR_FALLBACK_MODE == "solar" and solar_wm2 is not None:
         return tdb_c + config.TR_SOLAR_GAIN_C * max(0.0, solar_wm2) / 1000.0
     return tdb_c + config.TR_FALLBACK_OFFSET_C

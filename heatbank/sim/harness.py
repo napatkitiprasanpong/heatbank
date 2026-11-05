@@ -38,12 +38,19 @@ def simulate_worker(engine: StrainEngine, archetype, hours: List[WeatherHour], m
     steps, hourly, no_rec = 0, [], 0
     la = config.PLAN_LOOKAHEAD_H if lookahead is None else lookahead
     sh = shift_hours(hours)
+    prev_day = None
     for i, h in enumerate(sh):
+        day = h.time_iso[:10]
+        if prev_day is not None and day != prev_day:
+            # v0.5.4 (bug fix): a multi-day weather file used to be one endless shift (strain and sweat carried overnight, so every later
+            # day came out Red with no work). Each calendar day is a new shift for a rested worker.
+            trk = ExposureTracker(engine, archetype)
+        prev_day = day
         rem, frac, fs = trk.remaining_and_fraction(h)
         rest_ok = trk.rest_recovers(h) is not False          # A9: None (cannot tell / not strained) is not treated as failure
         if mode == "planned":
             if la > 0 and not fs:                     # audit A3: size the hour against the worse of now and the next hour(s)
-                rem_la = lookahead_remaining(trk, sh[i:i + 1 + la])
+                rem_la = lookahead_remaining(trk, [x for x in sh[i:i + 1 + la] if x.time_iso[:10] == day])   # v0.5.4: same day only
                 if rem_la is None: fs = True
                 else: rem = min(rem, rem_la)
             plan = plan_hour(rem, fail_safe=fs, degraded=degraded, heavy_task=archetype.task == "heavy", rest_ok=rest_ok)

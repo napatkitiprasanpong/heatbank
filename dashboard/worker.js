@@ -36,7 +36,7 @@
       level = ar.level; overdue = ar.overdue;
     }
 
-    if (demo) ban.appendChild(h("div", { class: "banner demo", text: L("banner_demo") }));
+    if (demo) ban.appendChild(h("div", { class: "banner demo", text: P.provenance.weather_real ? L("banner_demo_realwx", { date: P.provenance.weather_date }) : L("banner_demo") }));
     if (d.banner) ban.appendChild(h("div", { class: "banner", role: "status", text: L(d.banner) }));
 
     var key = P.action_keys[level], picId = ["pic_water", "pic_shade", "pic_cooldown", "pic_stop_medic"][level];
@@ -133,7 +133,8 @@
     document.getElementById("hourlabel").textContent = P.hours[S.idx] + ":00";
     var f = document.getElementById("foot"); f.textContent = "";
     f.appendChild(h("p", { text: L("disclaimer") }));
-    if (P.provenance.synthetic) f.appendChild(h("p", { class: "chip", text: L("simulated") }));
+    if (P.provenance.synthetic) f.appendChild(h("p", { class: "chip", text: P.provenance.weather_real ? L("simulated_realwx", { date: P.provenance.weather_date }) : L("simulated") }));
+    if (P.provenance.attribution) f.appendChild(h("p", { text: P.provenance.attribution }));
     f.appendChild(h("p", { text: P.provenance.strain_model + " | " + P.provenance.weather_source }));
     if (P.lang_status[S.lang] && S.lang !== "en") f.appendChild(h("p", { text: P.lang_status[S.lang] }));
     if (st && st.ageMin !== null && st.ageMin !== undefined) f.appendChild(h("p", { text: L("updated") + ": " + L("age_min", { n: Math.round(st.ageMin) }) }));

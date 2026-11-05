@@ -1,4 +1,9 @@
 # Changelog
+## 0.6.0
+- New: real weather. `heatbank/weather/nasa_power.py` (D8, NASA POWER hourly, no key). `heatbank export --nasa-power LAT LON YYYY-MM-DD`, `heatbank plan --nasa-power ...`, `heatbank simulate --nasa-power ...` (adds a `real_day` scenario). First run downloads and saves `data/real/nasa_power_*.json`; later runs work offline.
+- Honest labelling: pack gets `weather_real` and `attribution`; `synthetic` stays true because crew and clock are simulated. Banner and chip say "REAL weather (replay of DATE), SIMULATED crew" in EN and TH; footer credits NASA.
+- Safety: fill values (-999) and missing hours are refused, never interpolated; unknown units are refused, never guessed. A real-day replay never falls back to the generic last-forecast cache (it could hold another day).
+- Not verified: the sandbox could not reach NASA, so the parser is tested against a fixture that mimics the documented layout, not real data. 23 new tests (130 total).
 ## 0.5.3
 - Fix: limits of 1 minute (library's 'already exceeded') are 0; t_re at or above 38.0 is Red. Earlier V2 results are void.
 - Rest check thresholds corrected; `--probe-min`; 107 tests.

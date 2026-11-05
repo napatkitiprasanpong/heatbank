@@ -135,6 +135,11 @@ class StrainEngine:
                     duration_min=None, state: Optional[PhsState] = None) -> StrainResult:
         self.calls += 1
         clamped = []
+        lo_p, hi_p = config.PLAUSIBLE["tdb_c"]
+        if tdb_c is not None and tdb_c == tdb_c and not (lo_p <= tdb_c <= hi_p):
+            # v0.5.4: a fill value such as -999 must never be read as 'very cold = safe' (P2)
+            return StrainResult(validity.INVALID, 0.0, True, "validity gate",
+                                reasons=[f"tdb_c {tdb_c} is not a plausible air temperature (missing-data fill value?)"])
         if config.CLAMP_COOL_UP:
             lo = config.VALID_RANGES["tdb_c"][0]
             if tdb_c is not None and tdb_c == tdb_c and tdb_c < lo:

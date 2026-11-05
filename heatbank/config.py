@@ -15,6 +15,16 @@ VALID_RANGES = {
 }
 RH_RANGE = (0.0, 100.0)
 
+# v0.5.4 (bug fix, P2): physical plausibility. Real weather files use fill values such as -999 for missing data (NASA POWER does).
+# Before this check, tdb = -999 was treated as a very cold hour (clamped up to 15 C by CLAMP_COOL_UP) and came out GREEN with a 480-minute
+# allowance, and solar = -999 was read as night (tr = tdb). Anything outside these ranges is a sensor/data fault, never weather:
+# air temperature => INVALID (fail-safe Red); globe temperature or solar radiation => treated as UNKNOWN (conservative fallback).
+PLAUSIBLE = {
+    "tdb_c": (-60.0, 65.0),
+    "tg_c": (-60.0, 100.0),
+    "solar_wm2": (-5.0, 1500.0),    # small negative values are sensor noise at night; they are floored at 0 by the caller
+}
+
 # PHS run length used to read the maximum allowable exposure time (minutes). PROPOSED.
 PHS_DURATION_MIN = 480
 

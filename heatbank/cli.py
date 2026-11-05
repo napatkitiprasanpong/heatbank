@@ -28,6 +28,9 @@ def _add_source(p):
     p.add_argument("--csv"); p.add_argument("--csv-licence", default="", help="declare the licence/source of the CSV")
     p.add_argument("--open-meteo", nargs=2, type=float, metavar=("LAT", "LON"))
     p.add_argument("--allow-noncommercial", action="store_true", help="acknowledge Open-Meteo free-tier terms (U2)")
+    p.add_argument("--nasa-power", nargs=3, metavar=("LAT", "LON", "YYYY-MM-DD"), help="REAL weather replay of one day from NASA POWER (D8). Needs internet once, then works offline from data/real/")
+    p.add_argument("--utc-offset", type=float, default=4.0, help="local time = UTC + this many hours (default 4.0, UAE)")
+    p.add_argument("--nasa-refresh", action="store_true", help="download again even if a saved copy exists")
     p.add_argument("--cache", default="data/cache/last_forecast.json")
     p.add_argument("--toy", action="store_true", help="TOY model instead of PHS (not physiology)")
     p.add_argument("--out", default="out")
@@ -52,11 +55,16 @@ def _engine(toy):
 
 def _hours(a):
     """Weather with offline-first fallback (P5): provider -> cache; never silent."""
-    prov = make_provider(a.scenario, a.csv, a.csv_licence, a.open_meteo, a.allow_noncommercial)
+    prov = make_provider(a.scenario, a.csv, a.csv_licence, a.open_meteo, a.allow_noncommercial,
+                         a.nasa_power, a.utc_offset, a.nasa_refresh)
     try:
         hours = prov.hours(); cache.save(a.cache, prov.name, prov.licence_note, hours)
         return prov, hours, 0.0
     except Exception as e:
+        if getattr(a, "nasa_power", None):
+            # A real-day replay is keyed by place AND date and has its own offline copy (data/real/). The generic last-forecast cache can
+            # hold a different day or place, so using it here would label one day's weather as another's. Fail loudly instead.
+            raise SystemExit(f"could not get the real weather for {prov.name}: {e}")
         hours, age, fresh = cache.load(a.cache)
         print(f"[degraded] provider failed ({e!r}); cache age {age:.0f} min, fresh={fresh}", file=sys.stderr)
         if not hours: raise SystemExit("no data and no cache: nothing to compute (fail safe)")
@@ -91,7 +99,7 @@ def cmd_plan(a):
     eng, label = _engine(a.toy); prov, hours, age = _hours(a)
     archs = [x for x in build_archetypes() if not a.archetype or x.id == a.archetype]
     os.makedirs(a.out, exist_ok=True)
-    lines = [f"# HeatBank shift plan ({prov.name}){'  SYNTHETIC' if hours[0].synthetic else ''}",
+    lines = [f"# HeatBank shift plan ({prov.name}){'  SYNTHETIC' if hours[0].synthetic else '  REAL WEATHER (replay, not live), SIMULATED crew'}",
              f"Model: {label}. {DISCLAIMER}", ""]
     csv_rows = []
     for ar in archs:
@@ -129,7 +137,10 @@ def main(argv=None):
     s.add_argument("--out", default="out"); s.add_argument("--forecast-only", action="store_true")
     s.add_argument("--rest-area", choices=sorted(config.REST_AREAS), default=config.REST_AREA, help="where rest happens (audit A9)")
     s.add_argument("--probe-min", type=int, default=None, help="allowable-time probe length, default 480 (try 720, audit A11)")
-    s.set_defaults(fn=lambda a: run_v2.run(a.toy, a.adherence, a.out, a.forecast_only, a.rest_area, a.probe_min))
+    s.add_argument("--nasa-power", nargs=3, metavar=("LAT", "LON", "YYYY-MM-DD"), help="add one REAL-weather day (NASA POWER, D8) as a fifth scenario")
+    s.add_argument("--utc-offset", type=float, default=4.0); s.add_argument("--nasa-refresh", action="store_true")
+    s.set_defaults(fn=lambda a: run_v2.run(a.toy, a.adherence, a.out, a.forecast_only, a.rest_area, a.probe_min,
+                                          make_provider(None, nasa_power=a.nasa_power, utc_offset_h=a.utc_offset, nasa_refresh=a.nasa_refresh) if a.nasa_power else None))
     s = sub.add_parser("faults", help="V3 fault injection"); s.add_argument("--real", action="store_true", help="baseline from real pythermalcomfort instead of the toy model")
     s.set_defaults(fn=lambda a: sys.exit(0 if run_v3.run(a.real) else 1))
     a = p.parse_args(argv)

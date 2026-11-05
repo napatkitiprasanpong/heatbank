@@ -148,6 +148,15 @@ _TH = {
     "acc_yes": "ปรับตัวกับความร้อนแล้ว", "acc_no": "ยังไม่ปรับตัวกับความร้อน",
 }
 
+_EN.update({
+    "banner_demo_realwx": "DEMO: a replay of real weather from {date}. Crew and clock are simulated. Not live conditions.",
+    "simulated_realwx": "REAL weather (replay of {date}), SIMULATED crew",
+})
+_TH.update({
+    "banner_demo_realwx": "โหมดสาธิต: เล่นย้อนหลังสภาพอากาศจริงของวันที่ {date} ลูกทีมและเวลาเป็นการจำลอง ไม่ใช่สภาพปัจจุบัน",
+    "simulated_realwx": "สภาพอากาศจริง (เล่นย้อนหลังวันที่ {date}) ลูกทีมเป็นการจำลอง",
+})
+
 LANGS = {"en": _EN, "th": _TH}     # the team's third language goes here
 LANG_LABEL = {"en": "English", "th": "ไทย"}
 

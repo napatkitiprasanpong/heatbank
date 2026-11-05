@@ -23,7 +23,7 @@
     if (idx < 0) st = { haveForecast: false, offline: st.offline, ageMin: null };
     var noData = idx < 0 || !st.haveForecast;
     var dbanner = C.degrade(0, st, P).banner;
-    if (demo) ban.appendChild(h("div", { class: "banner demo", text: L("banner_demo") }));
+    if (demo) ban.appendChild(h("div", { class: "banner demo", text: P.provenance.weather_real ? L("banner_demo_realwx", { date: P.provenance.weather_date }) : L("banner_demo") }));
     if (dbanner) ban.appendChild(h("div", { class: "banner", role: "status", text: L(dbanner) }));
 
     // Hour picker (demo) so the presenter can walk through the day.
@@ -80,7 +80,8 @@
     ["ok", "offline", "stale", "none"].forEach(function (c) { var o = h("option", { value: c, text: L("cond_" + c) }); if (c === S.cond) o.selected = true; cond.appendChild(o); });
     var f = document.getElementById("foot"); f.textContent = "";
     f.appendChild(h("p", { text: L("disclaimer") }));
-    if (P.provenance.synthetic) f.appendChild(h("p", { class: "chip", text: L("simulated") }));
+    if (P.provenance.synthetic) f.appendChild(h("p", { class: "chip", text: P.provenance.weather_real ? L("simulated_realwx", { date: P.provenance.weather_date }) : L("simulated") }));
+    if (P.provenance.attribution) f.appendChild(h("p", { text: P.provenance.attribution }));
     f.appendChild(h("p", { text: P.provenance.strain_model + " | " + P.provenance.weather_source }));
     if (P.lang_status[S.lang] && S.lang !== "en") f.appendChild(h("p", { text: P.lang_status[S.lang] }));
     document.getElementById("demo").style.display = demo ? "" : "none";
