@@ -4,7 +4,7 @@ A software-first heat-strain planner for outdoor and industrial crews, built for
 
 > **Not a medical device.** HeatBank gives planning recommendations, not diagnoses. All thresholds are **proposed design parameters**, not clinical guidance. Every result in this repository is **simulated**: synthetic weather (or a one-day replay of real weather) and a simulated crew. No real workers, no personal data, and no real-world validation.
 
-Version **0.6.0** | Python 3.9+ | Owner: Napat Kitiprasanpong
+Version **0.6.0** | Python 3.9+ | MIT licence | Owner: Napat Kitiprasanpong
 
 ## The idea
 
@@ -153,7 +153,7 @@ Third-party software:
 
 No code was copied from repositories without a licence. The patented ECTemp method (US 10,702,165 B2) is not used. This is not legal advice.
 
-**Project licence:** not yet chosen. Add a `LICENSE` file before publishing if you want others to reuse the code.
+**Project licence:** [MIT](LICENSE), copyright 2026 Napat Kitiprasanpong. The MIT warranty disclaimer applies in full: HeatBank is a research prototype, **not a medical device**, and must not be relied on for real safety decisions.
 
 ## Documentation
 
