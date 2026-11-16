@@ -1,0 +1,25 @@
+{
+  "name": "heatbank-pitch-video",
+  "private": true,
+  "version": "1.0.0",
+  "description": "HeatBank 3-minute pitch video (Remotion)",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion bundle",
+    "render": "remotion render",
+    "still": "remotion still",
+    "ffprobe": "remotion ffprobe"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.223",
+    "@remotion/google-fonts": "^4.0.223",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.223"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.6.3"
+  }
+}

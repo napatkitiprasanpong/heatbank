@@ -1,0 +1,21 @@
+# HeatBank shift plan (synthetic:hot_humid)  SYNTHETIC
+Model: pythermalcomfort PHS (ISO 7933). Planning-stage prototype. Not a medical device. Thresholds are PROPOSED design parameters, not clinical guidance. Simulated results are not real-world validation.
+
+## A09: heavy work, light clothing, acclimatised
+
+| hour | allowable if rested (min) | work / rest (min) | conditions level | body state (model) | used at end | water est. (ml) | note |
+|---|---|---|---|---|---|---|---|
+| 07:00 | 365 | 60 / 0 | Green | Orange | 0.164 | 483 |  |
+| 08:00 | 330 | 60 / 0 | Green | Orange | 0.345 | 702 |  |
+| 09:00 | 300 | 60 / 0 | Yellow | Orange | 0.547 | 778 |  |
+| 10:00 | 275 | 55 / 5 | Orange | Orange | 0.764 | 852 |  |
+| 11:00 | 256 | 5 / 55 | Orange | Green | 0.828 | 457 |  |
+| 12:00 | 243 | 20 / 40 | Orange | Green | 0.959 | 417 |  |
+| 13:00 | 236 | 5 / 55 | Red | Green | 1.0 | 308 |  |
+| 14:00 | 235 | 0 / 60 | Red | Green | 1.0 | 193 |  |
+| 15:00 | 239 | 0 / 60 | Red | Green | 1.0 | 195 |  |
+| 16:00 | 248 | 0 / 60 | Red | Green | 1.0 | 193 |  |
+
+Hours where the plan allows heavy work (>=45 work min/hour): 7:00-11:00
+
+Water figures are simulated sweat loss, not a prescription. A plan is a recommendation; people decide.
