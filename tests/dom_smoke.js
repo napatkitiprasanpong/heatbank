@@ -22,7 +22,7 @@ function makeDom(htmlText) {
     walk(f) { f(this); this.children.forEach(c => c.walk ? c.walk(f) : null); }
   }
   const byId = {};
-  (htmlText.match(/id="([^"]+)"/g) || []).forEach(m => { const id = m.slice(4, -1); byId[id] = new El(id === "arch" || id === "cond" || id === "lang" ? "select" : "div"); });
+  (htmlText.match(/id="([^"]+)"/g) || []).forEach(m => { const id = m.slice(4, -1); byId[id] = new El(id === "cond" || id === "lang" ? "select" : "div"); });
   const doc = {
     documentElement: new El("html"), body: new El("body"),
     getElementById: id => byId[id] || (failures.push("missing element #" + id), new El("div")),
@@ -66,10 +66,26 @@ for (const page of ["worker.html", "supervisor.html"]) {
         check(page + ": no-forecast shows Red and no plan content", text(main).includes("Red") && !text(main).includes("This hour") && !text(main).includes("Zone A"));
       }
       if (cond === "stale") check(page + ": stale banner", text(app.byId.banners).includes("old"));
+      // explainability: every state gets a plain-language "Why this level?" that matches the state
+      check(page + ": Why card present (" + cond + ")", text(main).includes("Why this level?"));
+      if (cond === "none") check(page + ": no-forecast reason says missing data is Red", text(main).includes("Missing data is treated as Red"));
+      if (cond === "stale") check(page + ": stale reason says old data only raises", text(main).includes("Old data can only raise"));
+      if (cond === "ok") check(page + ": normal reason has no stale text", !text(main).includes("Old data can only raise"));
     }
     if (page === "worker.html") {
-      // every archetype and every hour renders without throwing
-      for (const a of P.archetypes) { app.byId.arch.value = a.id; app.byId.arch.fire("change", { target: app.byId.arch }); }
+      // profile picker: every task x clothing x acclimatisation choice (the 12 archetypes) renders without throwing
+      const radios = {}; app.byId["profile-ctrl"].walk(e => { if (e.tag === "input") (radios[e.attrs.name] = radios[e.attrs.name] || {})[e.value] = e; });
+      check("worker: profile has task, clothing and acclimatisation controls", ["p-task", "p-clothing", "p-acc"].every(n => radios[n]));
+      const pick = (n, v) => { radios[n][v].checked = true; radios[n][v].fire("change", { target: radios[n][v] }); };
+      const seen = {};
+      for (const a of P.archetypes) {
+        pick("p-task", a.task); pick("p-clothing", a.clothing); pick("p-acc", String(!!a.acclimatized));
+        seen[a.id] = text(app.byId["profile-line"]);
+        check("worker: profile line names the chosen profile " + a.id, seen[a.id].includes(a.task === "light" ? "Light" : a.task === "moderate" ? "Moderate" : "Heavy"));
+      }
+      check("worker: different profiles give different plan summaries", new Set(Object.values(seen)).size > 1);
+      check("worker: profile note says precomputed from ISO 7933", /ISO 7933/.test(text(app.byId["profile-note"])));
+      pick("p-task", "heavy"); pick("p-clothing", "light_clothing"); pick("p-acc", "true");
       for (let i = 0; i < P.hours.length; i++) { app.byId.hour.value = String(i); app.byId.hour.fire("input", { target: app.byId.hour }); }
       // switch to Thai
       app.byId.lang.value = "th"; app.byId.lang.fire("change", { target: app.byId.lang });

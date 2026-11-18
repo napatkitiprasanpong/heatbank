@@ -45,6 +45,9 @@
       h("p", { class: "action", text: L("action_" + key) })
     ]));
     main.appendChild(h("p", { class: "muted", text: L("site_worst") + ": " + L("site_worst_note") }));
+    var nameOf = function (n) { return L("level_" + n); }, sayAll = function (xs) { return xs.map(function (x) { return L(x.key, x.vars); }).join(" "); };
+    var siteWhy = C.explainSite({ haveForecast: !noData, worst: noData ? 3 : SV.site[idx].worst, level: siteLevel, stale: st.ageMin > P.max_age_min, ageMin: st.ageMin, maxAge: P.max_age_min }, nameOf);
+    main.appendChild(h("section", { class: "card why", "aria-label": L("why_title") }, [h("h2", { text: L("why_title") }), h("p", { text: sayAll(siteWhy) })]));
 
     if (!noData) {
       var nc = C.nextChange(SV.site.map(function (s) { return s.worst; }), idx);
@@ -63,7 +66,7 @@
         body.appendChild(h("tr", {}, [
           h("td", { "data-label": L("zone"), text: name }),
           h("td", { "data-label": L("crew_size"), text: String(z.n) }),
-          h("td", { "data-label": L("col_level") }, [pill(lvl), counts]),
+          h("td", { "data-label": L("col_level") }, [pill(lvl), counts, h("div", { class: "muted", text: sayAll(C.explainZone({ haveForecast: true, counts: r.counts, worst: r.worst, level: lvl, firstBreak: r.first_break_min, stale: st.ageMin > P.max_age_min, ageMin: st.ageMin, maxAge: P.max_age_min }, nameOf)) })]),
           h("td", { "data-label": L("first_break"), text: r.first_break_min === null ? L("no_break_needed") : L("at_minute", { n: r.first_break_min }) }),
           h("td", { "data-label": L("rotation"), text: r.rotate ? L("rotate_yes") : L("rotate_no") })]));
       });

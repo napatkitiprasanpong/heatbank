@@ -2,7 +2,7 @@
   "use strict";
   var P = window.HEATBANK, C = window.HBCore, U = window.HBUI, h = U.h;
   var demo = !!P.provenance.synthetic;
-  var S = { lang: "en", aid: "A09", idx: 0, cond: "ok" };
+  var S = { lang: "en", aid: "A09", idx: 0, cond: "ok", task: "heavy", clothing: "light_clothing", acc: true };
   // Optional break log (audit A15). Lives in this browser only (localStorage, guarded); nothing is ever sent anywhere.
   var LOGKEY = "heatbank_breaklog_v1";
   function loadLog() { try { var x = JSON.parse(window.localStorage.getItem(LOGKEY)); if (x && typeof x === "object") return x; } catch (e) {} return { hourKey: "", workedMs: 0, since: null }; }
@@ -47,6 +47,17 @@
     ]);
     main.appendChild(slab);
 
+    // Why this level? One plain sentence per true reason (explainability). Same rules as the level itself, so it cannot disagree with it.
+    var why = C.explainWorker({
+      haveForecast: !!(row && st.haveForecast), planned: planned, work: row ? degradedWork(row.work_planned_min, st, d) : 0,
+      gate: !!(row && row.gate), stale: d.banner === "banner_stale", degraded: d.level, ageMin: st.ageMin, maxAge: P.max_age_min,
+      overdue: overdue, worked: worked
+    }, function (n) { return L("level_" + n); });
+    main.appendChild(h("section", { class: "card why", "aria-label": L("why_title") }, [
+      h("h2", { text: L("why_title") }),
+      h("p", { text: why.map(function (x) { return L(x.key, x.vars); }).join(" ") })
+    ]));
+
     if (overdue) main.appendChild(h("p", { class: "banner", role: "status", text: L("overdue_note") }));
     if (row && st.haveForecast && row.gate) main.appendChild(h("p", { class: "banner", role: "status", text: L("gate_note") }));
     if (row && st.haveForecast && row.rest_ok === false) main.appendChild(h("p", { class: "banner", role: "status", text: L("norecovery_note") }));
@@ -70,7 +81,8 @@
         h("div", { class: "strip" }, [
           w > 0 ? h("div", { class: "w", style: "width:" + (w / 60 * 100) + "%", text: L("work") + " " + w }) : null,
           w < 60 ? h("div", { class: "r", style: "width:" + ((60 - w) / 60 * 100) + "%", text: L("rest") + " " + (60 - w) }) : null]),
-        h("p", { class: "muted", text: L("work_rest_line", { w: w, r: 60 - w }) + (row.rotate ? " " + L("rotate_yes") + "." : "") })
+        h("p", { class: "muted", text: L("work_rest_line", { w: w, r: 60 - w }) + (row.rotate ? " " + L("rotate_yes") + "." : "") }),
+        typeof row.water_est_ml === "number" ? h("p", { class: "muted", text: L("water_line", { ml: row.water_est_ml }) }) : null
       ]));
       main.appendChild(h("section", { class: "card" }, [
         h("h2", { text: L("log_title") }),
@@ -123,13 +135,13 @@
   function degradedWork(work, st, d) { return d.banner && d.banner !== "banner_offline" ? Math.min(work, P.degraded_work_cap_min || 30) : work; }
 
   function renderStatic(st) {
-    ["t-app", "t-sup", "t-lang", "t-demo", "t-arch", "t-hour", "t-cond"].forEach(function (id) {
-      var el = document.getElementById(id), m = { "t-app": "app_name", "t-sup": "supervisor_view", "t-lang": "language", "t-demo": "demo_controls", "t-arch": "archetype", "t-hour": "hour", "t-cond": "condition" }[id];
+    ["t-app", "t-sup", "t-lang", "t-demo", "t-profile", "t-hour", "t-cond"].forEach(function (id) {
+      var el = document.getElementById(id), m = { "t-app": "app_name", "t-sup": "supervisor_view", "t-lang": "language", "t-demo": "demo_controls", "t-profile": "profile_title", "t-hour": "hour", "t-cond": "condition" }[id];
       el.textContent = L(m);
     });
     var cond = document.getElementById("cond"); var cur = cond.value || "ok"; cond.textContent = "";
     ["ok", "offline", "stale", "none"].forEach(function (c) { var o = h("option", { value: c, text: L("cond_" + c) }); if (c === S.cond) o.selected = true; cond.appendChild(o); });
-    fillArch();
+    renderProfile();
     document.getElementById("hourlabel").textContent = P.hours[S.idx] + ":00";
     var f = document.getElementById("foot"); f.textContent = "";
     f.appendChild(h("p", { text: L("disclaimer") }));
@@ -144,14 +156,56 @@
   function archLabel(a) {
     return L("task_" + a.task) + ", " + L("cloth_" + a.clothing) + ", " + L(a.acclimatized ? "acc_yes" : "acc_no");
   }
-  function fillArch() {
-    var arch = document.getElementById("arch"); arch.textContent = "";
-    P.archetypes.forEach(function (a) { var o = h("option", { value: a.id, text: a.id + ": " + archLabel(a) }); if (a.id === S.aid) o.selected = true; arch.appendChild(o); });
+  // Profile: task x clothing x acclimatisation = the 12 precomputed archetypes. A lookup, not a calculation in the browser.
+  var PROFILE = [
+    { key: "task", label: "profile_task", opts: [["light", "task_light"], ["moderate", "task_moderate"], ["heavy", "task_heavy"]] },
+    { key: "clothing", label: "profile_clothing", opts: [["light_clothing", "cloth_light_clothing"], ["coverall_ppe", "cloth_coverall_ppe"]] },
+    { key: "acc", label: "profile_acc", opts: [[true, "profile_yes"], [false, "profile_no"]] }
+  ];
+  function findArch() {
+    for (var i = 0; i < P.archetypes.length; i++) {
+      var a = P.archetypes[i];
+      if (a.task === S.task && a.clothing === S.clothing && !!a.acclimatized === S.acc) return a;
+    }
+    return null;
+  }
+  var PROF_EL = [];   // [element, string key] pairs, so language changes need no DOM search
+  function tag(el, k) { PROF_EL.push([el, k]); return el; }
+  function buildProfile() {
+    var host = document.getElementById("profile-ctrl"); host.textContent = ""; PROF_EL = [];
+    PROFILE.forEach(function (g) {
+      var fs = h("fieldset", {}, [tag(h("legend"), g.label)]), seg = h("div", { class: "seg" });
+      g.opts.forEach(function (o) {
+        var inp = h("input", { type: "radio", name: "p-" + g.key, value: String(o[0]) });
+        inp.checked = String(S[g.key]) === String(o[0]);
+        inp.addEventListener("change", function () {
+          S[g.key] = (g.key === "acc") ? (o[0] === true) : o[0];
+          var a = findArch(); if (a) S.aid = a.id;
+          render();
+        });
+        seg.appendChild(h("label", {}, [inp, tag(h("span"), o[1])]));
+      });
+      fs.appendChild(seg); host.appendChild(fs);
+    });
+  }
+  function renderProfile() {
+    PROF_EL.forEach(function (p) { p[0].textContent = L(p[1]); });
+    var a = findArch(), plan = a ? P.plans[a.id] : null, line = document.getElementById("profile-line");
+    line.textContent = "";
+    if (a && plan) {
+      var work = 0, ml = 0;
+      plan.forEach(function (r) { work += r.work_planned_min || 0; ml += r.water_est_ml || 0; });
+      line.appendChild(h("strong", { text: L("profile_showing", { label: archLabel(a) }) }));
+      line.appendChild(document.createElement("br"));
+      line.appendChild(document.createTextNode(L("profile_summary", { work: work, total: plan.length * 60, ml: Math.round(ml / 10) * 10 })));
+    }
+    document.getElementById("profile-note").textContent = L("profile_note");
   }
   function boot() {
     S.lang = U.initLang(P, function (l) { S.lang = l; render(); });
-    var arch = document.getElementById("arch"); fillArch();
-    arch.addEventListener("change", function () { S.aid = arch.value; render(); });
+    var a0 = P.archetypes.filter(function (a) { return a.id === S.aid; })[0] || P.archetypes[0];
+    S.aid = a0.id; S.task = a0.task; S.clothing = a0.clothing; S.acc = !!a0.acclimatized;
+    buildProfile();
     var hr = document.getElementById("hour"); hr.max = P.hours.length - 1; hr.value = Math.min(4, P.hours.length - 1); S.idx = +hr.value;
     hr.addEventListener("input", function () { S.idx = +hr.value; render(); });
     document.getElementById("cond").addEventListener("change", function (e) { S.cond = e.target.value; render(); });

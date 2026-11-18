@@ -68,11 +68,37 @@
     return out;
   }
 
+  // Plain-language reasons (explainability). Pure: returns [{key, vars}] in reading order; the page translates and joins them.
+  // `nameOf(level)` gives the localised level name. Only reasons that are TRUE for the shown state are returned.
+  function explainWorker(o, nameOf) {
+    if (!o.haveForecast) return [{ key: "why_no_data", vars: {} }];
+    var out = [{ key: "why_band_" + o.planned, vars: { w: o.work } }];
+    if (o.gate) out.push({ key: "why_gate", vars: {} });
+    if (o.stale && o.degraded > o.planned) out.push({ key: "why_stale", vars: { age: Math.round(o.ageMin), max: o.maxAge, from: nameOf(o.planned), to: nameOf(o.degraded) } });
+    if (o.overdue) out.push({ key: "why_overdue", vars: { worked: o.worked, planned: o.work } });
+    return out;
+  }
+  function explainZone(o, nameOf) {
+    if (!o.haveForecast) return [{ key: "why_no_data", vars: {} }];
+    var parts = [];
+    for (var lv = 3; lv >= 0; lv--) if (o.counts[lv] > 0) parts.push(o.counts[lv] + " " + nameOf(lv));
+    var out = [{ key: "why_zone", vars: { list: parts.join(", ") } }];
+    if (o.firstBreak !== null && o.firstBreak !== undefined) out.push({ key: "why_zone_break", vars: { n: o.firstBreak } });
+    if (o.stale && o.level > o.worst) out.push({ key: "why_stale", vars: { age: Math.round(o.ageMin), max: o.maxAge, from: nameOf(o.worst), to: nameOf(o.level) } });
+    return out;
+  }
+  function explainSite(o, nameOf) {
+    if (!o.haveForecast) return [{ key: "why_no_data", vars: {} }];
+    var out = [{ key: "why_site", vars: {} }];
+    if (o.stale && o.level > o.worst) out.push({ key: "why_stale", vars: { age: Math.round(o.ageMin), max: o.maxAge, from: nameOf(o.worst), to: nameOf(o.level) } });
+    return out;
+  }
+
   function fmt(s, vars) {
     return String(s).replace(/\{(\w+)\}/g, function (_, k) { return vars && vars[k] !== undefined ? vars[k] : "{" + k + "}"; });
   }
 
-  var api = { degrade: degrade, hourIndex: hourIndex, ageMinutes: ageMinutes, nextChange: nextChange, fmt: fmt, heavyWindows: heavyWindows,
+  var api = { degrade: degrade, hourIndex: hourIndex, ageMinutes: ageMinutes, nextChange: nextChange, fmt: fmt, heavyWindows: heavyWindows, explainWorker: explainWorker, explainZone: explainZone, explainSite: explainSite,
               hourKey: hourKey, workedNow: workedNow, startWork: startWork, startBreak: startBreak, adherenceRaise: adherenceRaise };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.HBCore = api;
 })(typeof window !== "undefined" ? window : this);
