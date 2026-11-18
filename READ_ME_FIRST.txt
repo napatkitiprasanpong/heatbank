@@ -1,4 +1,4 @@
-HEATBANK UPDATE (profile picker + "Why this level?")
+HEATBANK UPDATE (profile picker, "Why this level?", new look)
 
 Unzip this, then upload the contents into the ROOT of your GitHub repo.
 The folders inside match your repo, so files land in the right place:

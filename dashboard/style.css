@@ -100,3 +100,59 @@ input[type=tel] { font: inherit; color: var(--ink); background: var(--panel); bo
 section.why h2 { margin-bottom: 4px; }
 section.why p { margin: 0; }
 table.zones td .muted { margin-top: 6px; max-width: 46ch; }
+
+/* ===== v2 theme: ledger feel. Serif for headings and numbers, one loud element (the level slab), calm everything else ===== */
+:root { --desk: #dfe7ea; --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Noto Serif Thai", serif; --shadow: 0 1px 0 var(--line), 0 14px 28px -20px rgba(20,35,43,.45); }
+@media (prefers-color-scheme: dark) { :root { --desk: #0a1318; --shadow: 0 1px 0 var(--line), 0 14px 28px -20px rgba(0,0,0,.8); } }
+@media (min-width: 700px) {
+  body { background: var(--desk); }
+  .wrap:not(.wide) { background: var(--paper); min-height: 100vh; padding: 0 24px 56px; box-shadow: 0 0 0 1px var(--line), 0 30px 60px -30px rgba(0,0,0,.35); }
+}
+header.top { position: sticky; top: 0; z-index: 5; margin: 0 -16px 8px; padding: 12px 16px; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+header.top h1 { font-family: var(--serif); font-size: 24px; letter-spacing: 0; display: flex; align-items: center; gap: 10px; }
+header.top h1::before { content: ""; width: 14px; height: 26px; border-radius: 7px; background: linear-gradient(to top, var(--l0) 0 25%, var(--l1) 25% 50%, var(--l2) 50% 75%, var(--l3) 75%); box-shadow: inset 0 0 0 2px var(--ink); }
+header.top nav a { font-weight: 700; }
+section.card { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+section.card h2 { font-family: var(--serif); font-size: 20px; margin: 0 0 10px; }
+section.profile { border-top: 4px solid var(--teal); }
+section.why { border-left: 5px solid var(--teal); }
+.banner { border-radius: 10px; border-width: 2px; }
+
+/* The level slab: the memorable element */
+.slab { border-radius: 16px; padding: 22px 20px; box-shadow: inset 0 -8px 0 rgba(0,0,0,.16); transition: background-color .35s, color .35s; }
+.slab .word { font-family: var(--serif); font-size: 46px; letter-spacing: -.01em; }
+.slab > div:nth-child(2) { padding: 8px; border-radius: 50%; background: rgba(255,255,255,.28); line-height: 0; }
+.slab .action { font-size: 24px; }
+.scale { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: -4px 0 14px; }
+.scale .step { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 8px 4px; font-size: 14px; font-weight: 600; border: 2px solid var(--line); border-radius: 8px; color: var(--muted); background: var(--panel); }
+.scale .step.on { border-color: var(--ink); color: var(--ink); font-weight: 800; box-shadow: 0 3px 0 var(--ink); }
+.scale .step.on.lv0 { background: var(--l0); color: var(--l0-ink); } .scale .step.on.lv1 { background: var(--l1); color: var(--l1-ink); }
+.scale .step.on.lv2 { background: var(--l2); color: var(--l2-ink); } .scale .step.on.lv3 { background: var(--l3); color: var(--l3-ink); }
+@media (max-width: 380px) { .scale .step svg { display: none; } }
+
+/* Heat budget as an account balance */
+.budget { height: 52px; border-radius: 10px; border-width: 2px; }
+.budget .fill { top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--ink) 0 8px, color-mix(in srgb, var(--ink) 82%, var(--paper)) 8px 16px); border-radius: 0 6px 6px 0; transition: width .5s ease; }
+.budget .pct { font-family: var(--serif); font-size: 24px; font-variant-numeric: tabular-nums; border-radius: 6px; }
+.strip { height: 46px; border-radius: 10px; font-size: 16px; }
+.day { gap: 8px; } .day li { border-radius: 10px; font-variant-numeric: tabular-nums; }
+.day li.now { box-shadow: 0 3px 0 var(--ink); }
+
+/* Controls */
+select, button, .btn { border-radius: 10px; transition: border-color .15s, background-color .15s, transform .1s; }
+select:hover, button:hover { border-color: var(--teal); } button:active { transform: translateY(1px); }
+.btn { display: inline-block; padding: 10px 16px; font-weight: 800; text-decoration: none; color: var(--paper); background: var(--ink); border: 2px solid var(--ink); }
+.seg span { border-radius: 10px; } .seg label:hover span { border-color: var(--teal); }
+.profile #profile-line strong { font-family: var(--serif); font-size: 19px; }
+
+/* Supervisor: wide slab, calmer table */
+.wrap.wide .slab { grid-template-columns: auto 1fr auto; grid-template-areas: "word action pic"; padding: 24px 28px; }
+.wrap.wide .slab .word { grid-area: word; } .wrap.wide .slab > div:nth-child(2) { grid-area: pic; } .wrap.wide .slab .action { grid-area: action; grid-column: auto; padding-left: 12px; }
+@media (max-width: 700px) { .wrap.wide .slab { grid-template-columns: auto 1fr; grid-template-areas: "word pic" "action action"; } .wrap.wide .slab .action { padding-left: 0; } }
+table.zones { border-radius: 14px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); }
+table.zones th { background: color-mix(in srgb, var(--teal) 8%, var(--panel)); }
+table.zones tbody tr:hover { background: color-mix(in srgb, var(--teal) 6%, var(--panel)); }
+.lvpill { border-radius: 999px; padding: 3px 12px; }
+.hours button { border-radius: 999px; } .hours button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+footer { border-top: 1px solid var(--line); padding-top: 14px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

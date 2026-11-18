@@ -7,66 +7,64 @@
 <meta name="description" content="Earlier, explainable heat-risk guidance for outdoor crews. Planning prototype, simulated data, not a medical device.">
 <link rel="stylesheet" href="dashboard/style.css">
 <style>
-  .hero h2 { font-size: 30px; line-height: 1.2; margin: 18px 0 8px; }
-  .hero p { margin: 0 0 12px; }
-  .ladder { display: grid; grid-template-columns: repeat(4, 1fr); margin: 16px 0; border-radius: 4px; overflow: hidden; }
-  .ladder div { padding: 14px 6px; text-align: center; font-weight: 800; font-size: 17px; }
-  .ladder small { display: block; font-weight: 600; font-size: 13px; margin-top: 2px; }
-  .go { display: grid; gap: 12px; margin: 16px 0; }
-  .go a { display: block; text-decoration: none; color: var(--ink); background: var(--panel); border: 3px solid var(--ink); border-radius: 4px; padding: 14px 16px; min-height: 44px; }
-  .go a:hover, .go a:focus-visible { border-color: var(--teal); }
-  .go strong { display: block; font-size: 22px; }
-  .go span { color: var(--muted); font-size: 16px; }
-  ol.try { padding-left: 22px; margin: 6px 0 0; } ol.try li { margin: 6px 0; }
-  ul.rules { padding-left: 20px; margin: 6px 0 0; } ul.rules li { margin: 6px 0; }
-  @media (max-width: 420px) { .ladder small { display: none; } }
+  body { background: var(--paper); } .wrap { max-width: 880px !important; box-shadow: none !important; background: none !important; padding: 0 20px 56px !important; min-height: 0 !important; }
+  .hero { padding: 36px 0 8px; }
+  .hero h2 { font-family: var(--serif); font-size: clamp(38px, 8vw, 68px); line-height: 1.02; letter-spacing: -.02em; margin: 0 0 16px; max-width: 12em; }
+  .hero p { font-size: 20px; max-width: 34em; margin: 0 0 22px; color: var(--muted); }
+  .ruler { margin: 8px 0 6px; } .ruler .bar { display: flex; height: 64px; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; }
+  .ruler .bar div { display: flex; align-items: center; padding: 0 12px; font-weight: 800; font-size: 17px; }
+  .ruler .ticks { position: relative; height: 26px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ruler .ticks span { position: absolute; top: 4px; transform: translateX(-50%); } .ruler .ticks span:first-child { transform: none; } .ruler .ticks span:last-child { transform: translateX(-100%); }
+  .ruler small { display: block; font-weight: 600; font-size: 13px; opacity: .9; }
+  .go { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin: 26px 0; }
+  .go a { display: block; text-decoration: none; color: var(--ink); background: var(--panel); border: 2px solid var(--ink); border-radius: 14px; padding: 20px; box-shadow: 0 5px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
+  .go a:hover, .go a:focus-visible { transform: translateY(2px); box-shadow: 0 3px 0 var(--ink); }
+  .go strong { display: block; font-family: var(--serif); font-size: 28px; margin-bottom: 4px; } .go span { color: var(--muted); }
+  .two { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+  ol.try { padding-left: 22px; margin: 0; } ol.try li { margin: 8px 0; }
+  dl.rules { margin: 0; } dl.rules dt { font-weight: 800; margin-top: 10px; } dl.rules dt:first-child { margin-top: 0; } dl.rules dd { margin: 2px 0 0; color: var(--muted); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top"><h1>HeatBank</h1></header>
-
-  <div class="banner demo" role="note">Planning prototype. All crews, weather and results here are simulated. Not a medical device.</div>
+  <div class="banner demo" role="note">Planning prototype. All crews, weather and results are simulated. Not a medical device.</div>
 
   <section class="hero">
     <h2>A heat budget for every shift.</h2>
-    <p>HeatBank works out how many safe minutes of work each task allows, hour by hour, using the ISO 7933 heat-strain model. It turns that into one level and one action for workers, and a group view for supervisors.</p>
+    <p>HeatBank works out how many safe minutes each task allows, hour by hour, with the ISO 7933 heat-strain model. Workers get one level and one action. Supervisors get group levels, never individuals.</p>
+    <div class="ruler" role="img" aria-label="Heat budget used: Green under 50 percent, Yellow 50 to 75, Orange 75 to 100, Red 100 or more">
+      <div class="bar">
+        <div class="lv0" style="width:50%">Green<small>&nbsp; normal work</small></div>
+        <div class="lv1" style="width:25%">Yellow</div>
+        <div class="lv2" style="width:25%">Orange</div>
+      </div>
+      <div class="ticks"><span style="left:0">0%</span><span style="left:50%">50%</span><span style="left:75%">75%</span><span style="left:100%">100% = Red</span></div>
+    </div>
   </section>
-
-  <div class="ladder" role="img" aria-label="Four alert levels: Green normal work, Yellow drink and shade break, Orange reduce and cool down, Red stop and cool down">
-    <div class="lv0">Green<small>Normal work</small></div>
-    <div class="lv1">Yellow<small>Drink, break</small></div>
-    <div class="lv2">Orange<small>Reduce, cool</small></div>
-    <div class="lv3">Red<small>Stop, cool, buddy</small></div>
-  </div>
 
   <nav class="go" aria-label="Open the prototype">
-    <a href="dashboard/worker.html"><strong>Worker view</strong><span>What one person sees on a phone: level, action, work/rest minutes, heat budget.</span></a>
-    <a href="dashboard/supervisor.html"><strong>Supervisor view</strong><span>Crew levels by zone, first break, rotation. Group figures only, never individuals.</span></a>
+    <a href="dashboard/worker.html"><strong>Worker view</strong><span>Pick your task, clothing and acclimatisation. See your level, your work and rest minutes, and why.</span></a>
+    <a href="dashboard/supervisor.html"><strong>Supervisor view</strong><span>Crew levels by zone, first break, rotation and the best hours for heavy work.</span></a>
   </nav>
 
-  <section class="card">
-    <h2>Try it in 60 seconds</h2>
-    <ol class="try">
-      <li>Open the <a href="dashboard/worker.html">worker view</a> and pick a worker type. Drag the hour slider and watch the level climb.</li>
-      <li>Switch the data condition to <em>stale</em>. The level can only go up, never down, and a banner says why.</li>
-      <li>Open the <a href="dashboard/supervisor.html">supervisor view</a>. The 3-person zone is pooled so no small group is exposed.</li>
-    </ol>
-  </section>
+  <div class="two">
+    <section class="card"><h2>Try it in 60 seconds</h2>
+      <ol class="try">
+        <li>Open the <a href="dashboard/worker.html">worker view</a>, choose a profile and drag the hour slider.</li>
+        <li>Read the "Why this level?" card, then set the connection to <em>stale</em>. The level only goes up.</li>
+        <li>Open the <a href="dashboard/supervisor.html">supervisor view</a>. The 3-person zone is pooled for privacy.</li>
+      </ol></section>
+    <section class="card"><h2>Four rules</h2>
+      <dl class="rules">
+        <dt>Protection first</dt><dd>The plan can hold or cut exposure, never extend it.</dd>
+        <dt>Fail safe</dt><dd>Stale, missing or out-of-range data can only raise the alert.</dd>
+        <dt>Private by design</dt><dd>No accounts, no identifiers, no uploads. Groups under 5 are pooled.</dd>
+        <dt>Humans in charge</dt><dd>Advice plus one-tap help. People decide.</dd>
+      </dl></section>
+  </div>
 
-  <section class="card">
-    <h2>Built around four rules</h2>
-    <ul class="rules">
-      <li>Protection before productivity: the plan can hold or reduce exposure, never extend it.</li>
-      <li>Fail safe: stale, missing or out-of-range data can only raise the alert.</li>
-      <li>Privacy by design: no accounts, no identifiers, no upload channel. Groups under 5 are pooled.</li>
-      <li>Humans in charge: advice and a one-tap way to call for help. Workers and supervisors decide.</li>
-    </ul>
-  </section>
-
-  <footer>
-    <p>Works offline once loaded. No tracking, no external scripts, no fonts or data fetched from other sites. Thai text is a draft awaiting native review. Thresholds are proposed design parameters, not clinical guidance.</p>
-  </footer>
+  <footer><p>Works offline once loaded. No tracking, no external scripts or fonts. Thai text is a draft awaiting native review. Thresholds are proposed design parameters, not clinical guidance.</p></footer>
 </div>
 </body>
 </html>

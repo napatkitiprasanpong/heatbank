@@ -46,6 +46,9 @@
       h("p", { class: "action", text: L("action_" + key) })
     ]);
     main.appendChild(slab);
+    main.appendChild(h("div", { class: "scale", role: "img", "aria-label": L("level_" + level) }, [0, 1, 2, 3].map(function (i) {
+      return h("div", { class: "step lv" + i + (i === level ? " on" : "") }, [U.shape(i, 14), h("span", { text: L("level_" + i) })]);
+    })));
 
     // Why this level? One plain sentence per true reason (explainability). Same rules as the level itself, so it cannot disagree with it.
     var why = C.explainWorker({
